@@ -29,10 +29,10 @@ export function ReportViewPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12">
+    <div className="mx-auto max-w-6xl px-6 py-12 print:max-w-full print:p-0">
       <Link
         to={`/shows/${showId}`}
-        className="mb-4 inline-block text-sm text-(--color-muted) hover:text-(--color-red)"
+        className="mb-4 inline-block text-sm text-(--color-muted) hover:text-(--color-red) print:hidden"
       >
         ← Back to show
       </Link>
@@ -47,9 +47,14 @@ export function ReportViewPage() {
             {fullReport.summary.totalAlignedSlides} slides compared
           </p>
         </div>
-        <Button variant="outline" onClick={handleExport}>
-          Export CSV
-        </Button>
+        <div className="flex shrink-0 gap-2 print:hidden">
+          <Button variant="outline" onClick={() => window.print()}>
+            Print / Save as PDF
+          </Button>
+          <Button variant="outline" onClick={handleExport}>
+            Export CSV
+          </Button>
+        </div>
       </header>
 
       <div className="mb-6 flex flex-wrap gap-3">
@@ -85,8 +90,8 @@ export function ReportViewPage() {
         </Card>
       )}
 
-      <Card className="overflow-x-auto">
-        <table className="w-full min-w-max border-collapse text-sm">
+      <Card className="overflow-x-auto print:overflow-visible print:border-none print:shadow-none">
+        <table className="w-full min-w-max border-collapse text-sm print:min-w-0 print:text-xs">
           <thead>
             <tr className="border-b-2 border-(--color-line) bg-(--color-paper-2) text-left">
               <th className="px-4 py-3 font-display text-(--color-ink)">Slide</th>
@@ -102,16 +107,16 @@ export function ReportViewPage() {
             {fullReport.rows.map((row) => (
               <tr
                 key={row.slideIndex}
-                className={`border-b border-(--color-line) ${row.realignment ? "border-l-4 border-l-(--color-warn) bg-(--color-warn)/5" : ""}`}
+                className={`border-b border-(--color-line) break-inside-avoid ${row.realignment ? "border-l-4 border-l-(--color-warn) bg-(--color-warn)/5" : ""}`}
               >
                 <td className="px-4 py-3 align-top font-mono text-(--color-ink-2)">{row.slideIndex}</td>
                 {row.cells.map((cell) => (
-                  <td key={cell.deckId} className="max-w-64 px-4 py-3 align-top">
+                  <td key={cell.deckId} className="max-w-64 px-4 py-3 align-top print:max-w-none">
                     {cell.slideIndex === null ? (
                       <span className="text-(--color-faint)">— no slide —</span>
                     ) : (
                       <div>
-                        <p className="truncate text-(--color-ink)" title={cell.textContent}>
+                        <p className="truncate text-(--color-ink) print:whitespace-normal" title={cell.textContent}>
                           {cell.textContent || <span className="text-(--color-faint)">(no text)</span>}
                         </p>
                         <p className="mt-1 text-xs text-(--color-muted)">

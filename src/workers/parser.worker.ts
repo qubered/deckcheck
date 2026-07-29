@@ -7,7 +7,7 @@ function post(msg: WorkerResponse) {
 }
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const { type, jobId, files, fuzzyThreshold } = event.data;
+  const { type, jobId, files, settings } = event.data;
   if (type !== "parse") return;
 
   try {
@@ -20,7 +20,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       post({ type: "deckParsed", jobId, deck });
     }
 
-    const report = buildComparisonReport(decks, fuzzyThreshold);
+    const report = buildComparisonReport(decks, settings);
     post({ type: "done", jobId, report });
   } catch (err) {
     post({ type: "error", jobId, message: err instanceof Error ? err.message : "Unknown parsing error" });
