@@ -1,4 +1,5 @@
 import { distance } from "fastest-levenshtein";
+import { alignDeckToReference } from "./alignment";
 import type {
   ComparisonReport,
   DeckFingerprint,
@@ -16,8 +17,12 @@ function similarity(a: string, b: string): number {
   return 1 - distance(a, b) / maxLen;
 }
 
-function cellForSlide(deck: DeckFingerprint, slideIndex: number): SlideCellResult {
-  const slide = deck.slides[slideIndex - 1];
+// `actualIndex` is already resolved to this deck's own 1-based slide position — either directly
+// (decks that match the group's majority slide count, or the reference deck itself) or via a
+// fuzzy realignment mapping (§6 Phase 3) for an outlier deck. `null` means no counterpart slide
+// was found for this row, whichever way it was resolved.
+function cellFor(deck: DeckFingerprint, actualIndex: number | null): SlideCellResult {
+  const slide = actualIndex !== null ? deck.slides[actualIndex - 1] : undefined;
   if (!slide) {
     return {
       deckId: deck.deckId,
@@ -47,31 +52,57 @@ function labelFor(deck: DeckFingerprint): string {
 /**
  * Builds a per-slide diff report across 2+ parsed decks.
  *
- * v1 scope: positional alignment only (slide index N assumed to correspond
- * across all decks) + text fuzzy-match and transition auto-advance flagging.
- * Fuzzy realignment for mismatched slide counts is Phase 3.
+ * Alignment: positional by default (slide index N assumed to correspond across all decks). A
+ * deck whose slide count doesn't match the group's majority gets a pairwise fuzzy-text
+ * realignment against a reference deck instead (§6 Phase 3) — flagged explicitly via
+ * `summary.realignmentWarnings` and per-row `realignment` notes, never silently trusted.
  */
 export function buildComparisonReport(
   decks: DeckFingerprint[],
   fuzzyThreshold: number = DEFAULT_FUZZY_THRESHOLD,
 ): ComparisonReport {
-  const maxSlideCount = Math.max(...decks.map((d) => d.slideCount), 0);
   const rows: SlideDiffRow[] = [];
   let issueCount = 0;
 
   const realignmentWarnings: string[] = [];
   const majorityCount = mode(decks.map((d) => d.slideCount));
+  // The reference deck defines the show's canonical slide count/order — the first deck matching
+  // the majority count, or just the first deck if every deck disagrees. No fixed reference deck
+  // is required otherwise (comparison stays group-wise per slide index).
+  const referenceDeck = decks.find((d) => d.slideCount === majorityCount) ?? decks[0];
+  const maxSlideCount = referenceDeck.slideCount;
+
+  const alignments = new Map<string, ReturnType<typeof alignDeckToReference>>();
   for (const deck of decks) {
-    if (deck.slideCount !== majorityCount) {
-      realignmentWarnings.push(
-        `${labelFor(deck)} has ${deck.slideCount} slides vs. ${majorityCount} in the rest of the group — positions after the shorter/longer deck may be misaligned (fuzzy realignment isn't implemented yet).`,
-      );
-    }
+    if (deck.deckId === referenceDeck.deckId || deck.slideCount === majorityCount) continue;
+    const alignment = alignDeckToReference(referenceDeck, deck);
+    alignments.set(deck.deckId, alignment);
+    const fromSlide = alignment.misalignedFromSlide;
+    realignmentWarnings.push(
+      `${labelFor(deck)} has ${deck.slideCount} slides vs. ${referenceDeck.slideCount} in ${labelFor(referenceDeck)} — ` +
+        (fromSlide !== null
+          ? `fuzzy-realigned by text content; first diverges around slide ${fromSlide}. Double-check that region.`
+          : `fuzzy-realigned by text content; the extra/missing slide(s) fell at the very start or end, so the rest lines up 1:1. Double-check the ends of the deck.`),
+    );
+  }
+
+  function actualIndexFor(deck: DeckFingerprint, slideIndex: number): number | null {
+    if (deck.deckId === referenceDeck.deckId || deck.slideCount === majorityCount) return slideIndex;
+    return alignments.get(deck.deckId)?.referenceToOwnIndex.get(slideIndex) ?? null;
   }
 
   for (let slideIndex = 1; slideIndex <= maxSlideCount; slideIndex++) {
-    const cells = decks.map((deck) => cellForSlide(deck, slideIndex));
+    const cells = decks.map((deck) => cellFor(deck, actualIndexFor(deck, slideIndex)));
     const issues: string[] = [];
+
+    let realignment: SlideDiffRow["realignment"];
+    for (const [deckId, alignment] of alignments) {
+      if (alignment.misalignedFromSlide !== null && slideIndex >= alignment.misalignedFromSlide) {
+        const deck = decks.find((d) => d.deckId === deckId)!;
+        realignment = { deckId, note: `${labelFor(deck)} realigned from here — verify this row manually.` };
+        break;
+      }
+    }
 
     const presentCells = cells.filter((c) => c.slideIndex !== null);
     const missingCells = cells.filter((c) => c.slideIndex === null);
@@ -83,7 +114,12 @@ export function buildComparisonReport(
       textStatus = "mismatch";
       for (const missing of missingCells) {
         const deck = decks.find((d) => d.deckId === missing.deckId)!;
-        issues.push(`${labelFor(deck)}: no slide here (deck ends at slide ${deck.slideCount})`);
+        const isRealigned = alignments.has(deck.deckId);
+        issues.push(
+          isRealigned
+            ? `${labelFor(deck)}: no corresponding slide found here after realignment`
+            : `${labelFor(deck)}: no slide here (deck ends at slide ${deck.slideCount})`,
+        );
       }
     }
 
@@ -164,6 +200,7 @@ export function buildComparisonReport(
       mediaFlag: { status: mediaStatus, present: mediaPresent, consistent: mediaConsistent },
       overallStatus,
       issues,
+      ...(realignment ? { realignment } : {}),
     });
   }
 

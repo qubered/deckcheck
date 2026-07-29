@@ -100,7 +100,10 @@ export function ReportViewPage() {
           </thead>
           <tbody>
             {fullReport.rows.map((row) => (
-              <tr key={row.slideIndex} className="border-b border-(--color-line)">
+              <tr
+                key={row.slideIndex}
+                className={`border-b border-(--color-line) ${row.realignment ? "border-l-4 border-l-(--color-warn) bg-(--color-warn)/5" : ""}`}
+              >
                 <td className="px-4 py-3 align-top font-mono text-(--color-ink-2)">{row.slideIndex}</td>
                 {row.cells.map((cell) => (
                   <td key={cell.deckId} className="max-w-64 px-4 py-3 align-top">
@@ -125,6 +128,9 @@ export function ReportViewPage() {
                 <td className="px-4 py-3 align-top">
                   <div className="flex flex-col gap-1">
                     <StatusBadge status={row.overallStatus} />
+                    {row.realignment && (
+                      <p className="text-xs font-semibold text-(--color-warn)">⚠ {row.realignment.note}</p>
+                    )}
                     {row.issues.length > 0 && (
                       <ul className="text-xs text-(--color-muted)">
                         {row.issues.map((issue, i) => (
