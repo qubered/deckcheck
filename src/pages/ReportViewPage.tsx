@@ -111,9 +111,13 @@ export function ReportViewPage() {
                         <p className="truncate text-(--color-ink)" title={cell.textContent}>
                           {cell.textContent || <span className="text-(--color-faint)">(no text)</span>}
                         </p>
+                        <p className="mt-1 text-xs text-(--color-muted)">
+                          {cell.buildClickCount} click{cell.buildClickCount === 1 ? "" : "s"}
+                        </p>
                         {cell.hasAutoAdvance && (
                           <p className="mt-1 text-xs text-(--color-warn)">⚠ auto-advance {cell.autoAdvanceMs}ms</p>
                         )}
+                        {cell.hasAutoplayMedia && <p className="mt-1 text-xs text-(--color-warn)">⚠ autoplay media</p>}
                       </div>
                     )}
                   </td>
