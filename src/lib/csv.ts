@@ -18,8 +18,9 @@ export function reportToCsv(report: ComparisonReport): string {
   for (const row of report.rows) {
     const cells = row.cells.map((c) => {
       if (c.slideIndex === null) return "(no slide)";
-      const parts = [c.textContent.slice(0, 60) || "(no text)"];
+      const parts = [c.textContent.slice(0, 60) || "(no text)", `${c.buildClickCount} click${c.buildClickCount === 1 ? "" : "s"}`];
       if (c.hasAutoAdvance) parts.push(`auto-advance ${c.autoAdvanceMs}ms`);
+      if (c.hasAutoplayMedia) parts.push("autoplay media");
       return parts.join(" | ");
     });
     const line = [

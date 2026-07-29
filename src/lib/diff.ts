@@ -118,10 +118,39 @@ export function buildComparisonReport(
       }
     }
 
+    // Build/click count: primary comparable unit for animation-heavy decks — every deck in the
+    // group should agree on how many clicks a slide takes to fully play out.
+    let buildStatus: MatchStatus = "match";
+    if (presentCells.length >= 2) {
+      const distinctCounts = new Set(presentCells.map((c) => c.buildClickCount));
+      if (distinctCounts.size > 1) {
+        buildStatus = "mismatch";
+        issues.push(
+          `Build/click count mismatch — ${presentCells
+            .map((c) => `${labelFor(decks.find((d) => d.deckId === c.deckId)!)}: ${c.buildClickCount} click${c.buildClickCount === 1 ? "" : "s"}`)
+            .join(", ")}`,
+        );
+      }
+    }
+
+    // Media autoplay: flagged whenever present (inherently risky on synced content), escalated to
+    // a hard mismatch if only some decks in the group have it.
+    const autoplayCells = presentCells.filter((c) => c.hasAutoplayMedia);
+    const mediaPresent = autoplayCells.length > 0;
+    const mediaConsistent = !mediaPresent || autoplayCells.length === presentCells.length;
+    const mediaStatus: MatchStatus = mediaPresent && !mediaConsistent ? "mismatch" : mediaPresent ? "info" : "match";
+    if (mediaPresent) {
+      issues.push(
+        `Autoplay media on: ${autoplayCells.map((c) => labelFor(decks.find((d) => d.deckId === c.deckId)!)).join(", ")}${
+          mediaConsistent ? "" : " (not present on the rest of the group)"
+        }`,
+      );
+    }
+
     let overallStatus: MatchStatus;
-    if (textStatus === "mismatch") overallStatus = "mismatch";
+    if (textStatus === "mismatch" || buildStatus === "mismatch" || mediaStatus === "mismatch") overallStatus = "mismatch";
     else if (textStatus === "partial") overallStatus = "partial";
-    else if (transitionPresent) overallStatus = "info";
+    else if (transitionPresent || mediaStatus === "info") overallStatus = "info";
     else overallStatus = "match";
 
     if (overallStatus === "mismatch" || overallStatus === "partial") issueCount++;
@@ -130,9 +159,9 @@ export function buildComparisonReport(
       slideIndex,
       cells,
       textMatch: { status: textStatus, minSimilarity },
-      buildMatch: { status: "info" }, // build/click comparison lands in Phase 2
+      buildMatch: { status: buildStatus },
       transitionFlag: { status: transitionPresent ? "info" : "match", present: transitionPresent },
-      mediaFlag: { status: "match", present: false, consistent: true }, // media autoplay lands in Phase 2
+      mediaFlag: { status: mediaStatus, present: mediaPresent, consistent: mediaConsistent },
       overallStatus,
       issues,
     });
