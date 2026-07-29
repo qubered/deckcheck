@@ -55,9 +55,15 @@ npm run lint     # oxlint
 
 ### Deploying
 
-`npm run build` produces a fully static `dist/` folder — it can be hosted anywhere that serves
-static files (no server-side runtime required). Where to host it hasn't been decided yet; see the
-open decisions in the build tracker.
+Pushes to `main` auto-deploy to GitHub Pages via `.github/workflows/deploy-pages.yml`
+(build → `actions/upload-pages-artifact` → `actions/deploy-pages`). Live at
+`https://qubered.github.io/deckcheck/`. The app uses `HashRouter` (URLs like `/#/shows/:id`)
+specifically so deep links keep working on Pages, which has no server-side rewrite for
+history-mode routing.
+
+`npm run build` also produces a fully static `dist/` folder on its own — it can be hosted
+anywhere that serves static files if you'd rather point it elsewhere later (no server-side
+runtime required either way).
 
 ### Data & privacy
 

@@ -4,7 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Served from https://qubered.github.io/deckcheck/ on GitHub Pages, so
+  // production asset URLs need the repo name as a base path; the dev server
+  // still serves from /.
+  base: command === 'build' ? '/deckcheck/' : '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -14,4 +18,4 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
-})
+}))
