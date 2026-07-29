@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "outline" | "ghost" | "danger";
+type Variant = "primary" | "outline" | "ghost" | "danger" | "cream";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -19,6 +19,10 @@ const variants: Record<Variant, string> = {
   outline:
     "border-2 border-(--color-line-2) text-(--color-ink) bg-transparent hover:bg-(--color-ink) hover:text-(--color-paper)",
   ghost: "text-(--color-ink-2) hover:text-(--color-red) bg-transparent",
+  // Fixed cream fill, reserved for buttons sitting on a solid red block (a closing CTA band) —
+  // never used elsewhere, per the design language's button hierarchy.
+  cream:
+    "bg-(--color-cream) text-(--color-red) shadow-[0_3px_0_rgba(0,0,0,0.25)] hover:-translate-y-px active:translate-y-0.5 active:shadow-none",
 };
 
 export function Button({ variant = "primary", className, children, ...props }: ButtonProps) {

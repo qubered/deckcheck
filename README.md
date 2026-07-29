@@ -19,13 +19,18 @@ Content model: **Shows → Reports.** A Show is an event or presentation (an all
 session, a multi-room broadcast); a Report is one comparison run within it (first-draft check,
 post-revision recheck, day-of final check, etc.).
 
+**Free and open source (MIT).** No account, no paid tier, no usage limits — see [LICENSE](./LICENSE).
+
 Built on the [RVLT Flow design language](https://github.com/RVLT-Labs/rvlt-designlanguage/blob/main/DESIGN.md).
+
+`/` is a marketing/explainer landing page; the actual tool lives at `/app`.
 
 ## Status
 
-v1 MVP (positional alignment, fuzzy text match, transition auto-advance flagging, CSV export).
-See the [build tracker](../../issues) for what's shipped and what's next (build/click counts,
-media autoplay detection, fuzzy realignment for mismatched slide counts, PDF export).
+All four planned build phases are shipped: positional + fuzzy-realigned diffing, text/transition/
+build-click-count/media-autoplay checks, effect-type comparison, configurable per-show severity,
+CSV/print export, and a cross-report issue trend. See the [build tracker](../../issues) for detail
+and what's still icebox (auto-fix).
 
 ## Getting started
 
@@ -75,5 +80,9 @@ runtime required either way).
 Show/Report history is saved to your browser's IndexedDB (via Dexie) so it persists across
 sessions on the same machine. Only parsed diff results are stored — raw `.pptx` files are never
 written to disk or sent anywhere. Clearing your browser's site data for DeckCheck removes
-everything; there's currently no bulk "clear all" button in the UI (tracked as a Phase 4
-follow-up), but deleting Shows individually cascades to their Reports.
+everything; there's no bulk "clear all" button in the UI yet, but deleting Shows individually
+cascades to their Reports.
+
+## License
+
+MIT — see [LICENSE](./LICENSE). Use it, fork it, self-host it, send a pull request.

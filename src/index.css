@@ -25,6 +25,11 @@
   --color-red: #e0363d;
   --color-red-700: #b21f26;
 
+  /* Fixed cream/espresso — deliberately do NOT swap with theme (unlike --color-ink, which does).
+     Reserved for buttons/spotlight moments/stickers sitting on a solid or bright fill. */
+  --color-cream: #f5efe2;
+  --color-espresso: #141210;
+
   /* Status */
   --color-ok: #4fd888;
   --color-warn: #eba53a;

@@ -87,7 +87,7 @@ export function RunReportPage() {
         await db.reports.add(report);
         await touchShow(showId);
         worker.terminate();
-        navigate(`/shows/${showId}/reports/${report.id}`);
+        navigate(`/app/shows/${showId}/reports/${report.id}`);
       } else if (msg.type === "error") {
         setError(msg.message);
         setRunning(false);
@@ -104,7 +104,7 @@ export function RunReportPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
       <Link
-        to={`/shows/${showId}`}
+        to={`/app/shows/${showId}`}
         className="mb-4 inline-block text-sm text-(--color-muted) hover:text-(--color-red)"
       >
         ← Back to show

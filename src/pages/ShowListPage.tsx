@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { db, createShow, deleteShow } from "@/lib/db";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -22,7 +22,7 @@ export function ShowListPage() {
     setModalOpen(false);
     setName("");
     setNotes("");
-    navigate(`/shows/${show.id}`);
+    navigate(`/app/shows/${show.id}`);
   }
 
   async function handleDelete(showId: string, showName: string) {
@@ -33,10 +33,10 @@ export function ShowListPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
       <header className="mb-8 flex items-center justify-between">
-        <div>
+        <Link to="/" className="block">
           <p className="font-hand text-(--color-red)">multi-screen sync checker</p>
           <h1 className="font-display text-3xl font-extrabold text-(--color-ink)">DeckCheck</h1>
-        </div>
+        </Link>
         <Button onClick={() => setModalOpen(true)}>+ New Show</Button>
       </header>
 
@@ -53,7 +53,7 @@ export function ShowListPage() {
           <Card
             key={show.id}
             className="flex cursor-pointer items-center justify-between px-5 py-4 hover:border-(--color-red)"
-            onClick={() => navigate(`/shows/${show.id}`)}
+            onClick={() => navigate(`/app/shows/${show.id}`)}
           >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
