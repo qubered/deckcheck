@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=Kalam:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-display: "Archivo", sans-serif;
+  --font-body: "Hanken Grotesk", sans-serif;
+  --font-hand: "Kalam", cursive;
+
+  /* Surfaces (dark / espresso — primary theme) */
+  --color-paper: #141210;
+  --color-paper-2: #1a1613;
+  --color-card: #211c17;
+  --color-elevation: #2a241d;
+  --color-line: #3a332a;
+  --color-line-2: #4a4136;
+
+  /* Text */
+  --color-ink: #f5efe2;
+  --color-ink-2: #cdc4b2;
+  --color-muted: #9e9483;
+  --color-faint: #6e665a;
+
+  /* Accent */
+  --color-red: #e0363d;
+  --color-red-700: #b21f26;
+
+  /* Status */
+  --color-ok: #4fd888;
+  --color-warn: #eba53a;
+  --color-repair: #b6ac9a;
+  --color-timeout: #f26f73;
+
+  /* Module wayfinding (DeckCheck entities) */
+  --color-module-show: #5b8def; /* Shows */
+  --color-module-report: #eba53a; /* Reports */
+  --color-module-deck: #9b82e6; /* Decks / screens (Wide, Twins, Pillars...) */
+
+  /* Shape */
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* Shadows (hard offset, no blur) */
+  --shadow-card: 0 3px 0 #0c0a08;
+  --shadow-hover: 0 7px 0 #0c0a08;
+}
+
+/* Light theme twin — same token names, alternate values.
+   :root[data-theme="light"] forces light; [data-theme="dark"] forces dark;
+   otherwise it follows the OS preference, dark being the primary/default look. */
+:root[data-theme="light"],
+:root:not([data-theme="dark"]) {
+  @media (prefers-color-scheme: light) {
+    --color-paper: #f5efe2;
+    --color-paper-2: #ede5d3;
+    --color-card: #ffffff;
+    --color-elevation: #fbf7ee;
+    --color-line: #e2d8c4;
+    --color-line-2: #d3c6ab;
+
+    --color-ink: #141210;
+    --color-ink-2: #2a241d;
+    --color-muted: #6e665a;
+    --color-faint: #9e9483;
+
+    --color-red: #c12229;
+    --color-red-700: #9c1b21;
+
+    --shadow-card: 0 3px 0 #d3c6ab;
+    --shadow-hover: 0 5px 0 #d3c6ab;
+  }
+}
+
+:root[data-theme="light"] {
+  --color-paper: #f5efe2;
+  --color-paper-2: #ede5d3;
+  --color-card: #ffffff;
+  --color-elevation: #fbf7ee;
+  --color-line: #e2d8c4;
+  --color-line-2: #d3c6ab;
+
+  --color-ink: #141210;
+  --color-ink-2: #2a241d;
+  --color-muted: #6e665a;
+  --color-faint: #9e9483;
+
+  --color-red: #c12229;
+  --color-red-700: #9c1b21;
+
+  --shadow-card: 0 3px 0 #d3c6ab;
+  --shadow-hover: 0 5px 0 #d3c6ab;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,121 @@
+// Organizational entities — persisted to IndexedDB.
+
+export interface Show {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  notes: string | null;
+}
+
+export interface Report {
+  id: string;
+  showId: string;
+  runLabel: string | null;
+  createdAt: number;
+  deckLabels: string[];
+  summary: {
+    totalSlides: number;
+    issueCount: number;
+  };
+  fullReport: ComparisonReport;
+}
+
+// Per-slide fingerprint — the parsing output that feeds a Report.
+// Lives in memory only during a run; never persisted raw, only via ComparisonReport.
+
+export interface SlideFingerprint {
+  slideIndex: number;
+  slideId: string;
+  textContent: string;
+  textHash: string;
+
+  transition: {
+    hasTransition: boolean;
+    autoAdvanceMs: number | null;
+    clickAdvance: boolean;
+  };
+
+  builds: BuildStep[];
+  buildClickCount: number;
+
+  media: MediaNode[];
+}
+
+export interface BuildStep {
+  stepIndex: number;
+  trigger: "onClick" | "withPrevious" | "afterPrevious";
+  delayMs: number | null;
+  targetShapeIds: string[];
+  effectType: string | null;
+}
+
+export interface MediaNode {
+  shapeId: string;
+  type: "video" | "audio";
+  autoplay: boolean;
+  durationMs: number | null;
+  trigger: "onClick" | "withPrevious" | "afterPrevious";
+}
+
+export interface DeckFingerprint {
+  deckId: string;
+  filename: string;
+  userLabel: string | null;
+  slideCount: number;
+  slides: SlideFingerprint[];
+  warnings: string[];
+}
+
+// Diff / report structures (§7 / §8)
+
+export type MatchStatus = "match" | "partial" | "mismatch" | "info";
+
+export interface SlideCellResult {
+  deckId: string;
+  slideIndex: number | null; // null if this deck has no aligned slide here
+  textContent: string;
+  buildClickCount: number;
+  hasAutoAdvance: boolean;
+  autoAdvanceMs: number | null;
+  hasAutoplayMedia: boolean;
+}
+
+export interface SlideDiffRow {
+  slideIndex: number;
+  cells: SlideCellResult[];
+  textMatch: { status: MatchStatus; minSimilarity: number };
+  buildMatch: { status: MatchStatus };
+  transitionFlag: { status: MatchStatus; present: boolean };
+  mediaFlag: { status: MatchStatus; present: boolean; consistent: boolean };
+  overallStatus: MatchStatus;
+  issues: string[]; // human-readable flags, e.g. "Pillars: build mismatch (4 vs 3 clicks)"
+  realignment?: { deckId: string; note: string };
+}
+
+export interface ComparisonReport {
+  decks: Array<{ deckId: string; filename: string; userLabel: string | null; slideCount: number; warnings: string[] }>;
+  rows: SlideDiffRow[];
+  fuzzyThreshold: number;
+  summary: {
+    decksCompared: number;
+    totalAlignedSlides: number;
+    issueCount: number;
+    realignmentWarnings: string[];
+  };
+}
+
+// Worker protocol
+
+export type WorkerRequest = {
+  type: "parse";
+  jobId: string;
+  files: Array<{ deckId: string; filename: string; userLabel: string | null; buffer: ArrayBuffer }>;
+  fuzzyThreshold: number;
+};
+
+export type WorkerResponse =
+  | { type: "progress"; jobId: string; deckId: string; slidesParsed: number; totalSlides: number }
+  | { type: "deckParsed"; jobId: string; deck: DeckFingerprint }
+  | { type: "done"; jobId: string; report: ComparisonReport }
+  | { type: "error"; jobId: string; message: string };
