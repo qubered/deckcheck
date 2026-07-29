@@ -181,8 +181,10 @@ export function RunReportPage() {
           </div>
 
           {error && (
-            <div className="rounded-(--radius-md) border-2 border-(--color-timeout) bg-(--color-timeout)/10 px-4 py-3 text-sm text-(--color-timeout)">
-              {error}
+            <div className="rounded-(--radius-md) border border-(--color-warn)/40 bg-(--color-warn)/10 px-4 py-3 text-sm text-(--color-ink-2)">
+              <p className="font-semibold text-(--color-ink)">Couldn't finish this comparison</p>
+              <p className="mt-1">{error}</p>
+              <p className="mt-1 text-(--color-muted)">Nothing was uploaded anywhere — fix the file and try again.</p>
             </div>
           )}
 

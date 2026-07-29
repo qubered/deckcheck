@@ -1,3 +1,4 @@
+import { summarizeBuildEffects } from "./effectLabels";
 import type { ComparisonReport } from "./types";
 
 function escapeCsvCell(value: string): string {
@@ -18,13 +19,14 @@ export function reportToCsv(report: ComparisonReport): string {
   for (const row of report.rows) {
     const cells = row.cells.map((c) => {
       if (c.slideIndex === null) return "(no slide)";
-      const parts = [c.textContent.slice(0, 60) || "(no text)", `${c.buildClickCount} click${c.buildClickCount === 1 ? "" : "s"}`];
+      const buildSummary = c.builds.length > 0 ? `${c.buildClickCount} build${c.buildClickCount === 1 ? "" : "s"} (${summarizeBuildEffects(c.builds)})` : "no builds";
+      const parts = [c.textContent.slice(0, 60) || "(no text)", buildSummary];
       if (c.hasAutoAdvance) parts.push(`auto-advance ${c.autoAdvanceMs}ms`);
       if (c.hasAutoplayMedia) parts.push("autoplay media");
       return parts.join(" | ");
     });
     const line = [
-      String(row.slideIndex),
+      row.label,
       ...cells,
       row.overallStatus,
       row.issues.join("; "),

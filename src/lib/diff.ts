@@ -1,5 +1,6 @@
 import { distance } from "fastest-levenshtein";
 import { alignDeckToReference } from "./alignment";
+import { effectFamilyLabel } from "./effectLabels";
 import { DEFAULT_REPORT_SETTINGS } from "./types";
 import type {
   ComparisonReport,
@@ -64,7 +65,7 @@ function compareEffects(presentCells: SlideCellResult[], decks: DeckFingerprint[
     if (distinctEffects.size > 1) {
       notes.push(
         `ℹ Step ${step} effect type differs — ${atStep
-          .map((x) => `${labelFor(decks.find((d) => d.deckId === x.deckId)!)}: ${x.build.effectType ?? "(none)"}`)
+          .map((x) => `${labelFor(decks.find((d) => d.deckId === x.deckId)!)}: ${effectFamilyLabel(x.build.effectType)}`)
           .join(", ")}`,
       );
     }
@@ -106,11 +107,15 @@ export function buildComparisonReport(
     const alignment = alignDeckToReference(referenceDeck, deck);
     alignments.set(deck.deckId, alignment);
     const fromSlide = alignment.misalignedFromSlide;
+    const extraCount = Array.from(alignment.extraOwnSlidesByAnchor.values()).reduce((n, list) => n + list.length, 0);
     realignmentWarnings.push(
       `${labelFor(deck)} has ${deck.slideCount} slides vs. ${referenceDeck.slideCount} in ${labelFor(referenceDeck)} — ` +
         (fromSlide !== null
           ? `fuzzy-realigned by text content; first diverges around slide ${fromSlide}. Double-check that region.`
-          : `fuzzy-realigned by text content; the extra/missing slide(s) fell at the very start or end, so the rest lines up 1:1. Double-check the ends of the deck.`),
+          : `fuzzy-realigned by text content; the extra/missing slide(s) fell at the very start or end, so the rest lines up 1:1. Double-check the ends of the deck.`) +
+        (extraCount > 0
+          ? ` ${extraCount} slide${extraCount === 1 ? "" : "s"} with no counterpart at all ${extraCount === 1 ? "is" : "are"} shown below as its own row.`
+          : ""),
     );
   }
 
@@ -119,16 +124,55 @@ export function buildComparisonReport(
     return alignments.get(deck.deckId)?.referenceToOwnIndex.get(slideIndex) ?? null;
   }
 
-  for (let slideIndex = 1; slideIndex <= maxSlideCount; slideIndex++) {
-    const cells = decks.map((deck) => cellFor(deck, actualIndexFor(deck, slideIndex)));
+  // Report rows are built from a column plan rather than a flat 1..maxSlideCount loop, so that an
+  // outlier deck's slides with no reference counterpart at all (e.g. the 2 extra slides in a
+  // 23-slide deck vs. a 21-slide reference) still get their own row instead of being silently
+  // dropped from the report.
+  type Column =
+    | { kind: "reference"; refIndex: number }
+    | { kind: "extra"; anchorRefIndex: number; deckId: string; ownIndex: number; seq: number };
+
+  const columns: Column[] = [];
+  let extraSeq = 0;
+  for (let anchor = 0; anchor <= maxSlideCount; anchor++) {
+    for (const [deckId, alignment] of alignments) {
+      const extras = alignment.extraOwnSlidesByAnchor.get(anchor) ?? [];
+      for (const ownIndex of extras) {
+        columns.push({ kind: "extra", anchorRefIndex: anchor, deckId, ownIndex, seq: extraSeq++ });
+      }
+    }
+    if (anchor < maxSlideCount) {
+      columns.push({ kind: "reference", refIndex: anchor + 1 });
+    }
+  }
+
+  for (const column of columns) {
+    const cells = decks.map((deck) =>
+      cellFor(
+        deck,
+        column.kind === "extra"
+          ? deck.deckId === column.deckId
+            ? column.ownIndex
+            : null
+          : actualIndexFor(deck, column.refIndex),
+      ),
+    );
     const issues: string[] = [];
 
     let realignment: SlideDiffRow["realignment"];
-    for (const [deckId, alignment] of alignments) {
-      if (alignment.misalignedFromSlide !== null && slideIndex >= alignment.misalignedFromSlide) {
-        const deck = decks.find((d) => d.deckId === deckId)!;
-        realignment = { deckId, note: `${labelFor(deck)} realigned from here — verify this row manually.` };
-        break;
+    if (column.kind === "extra") {
+      const deck = decks.find((d) => d.deckId === column.deckId)!;
+      realignment = {
+        deckId: column.deckId,
+        note: `Extra slide in ${labelFor(deck)} with no counterpart in ${labelFor(referenceDeck)} — verify whether it belongs here.`,
+      };
+    } else {
+      for (const [deckId, alignment] of alignments) {
+        if (alignment.misalignedFromSlide !== null && column.refIndex >= alignment.misalignedFromSlide) {
+          const deck = decks.find((d) => d.deckId === deckId)!;
+          realignment = { deckId, note: `${labelFor(deck)} realigned from here — verify this row manually.` };
+          break;
+        }
       }
     }
 
@@ -138,8 +182,13 @@ export function buildComparisonReport(
     let textStatus: MatchStatus = "match";
     let minSimilarity = 1;
 
-    if (missingCells.length > 0) {
-      textStatus = "mismatch";
+    if (column.kind === "extra") {
+      textStatus = "structural";
+      const deck = decks.find((d) => d.deckId === column.deckId)!;
+      const others = decks.filter((d) => d.deckId !== column.deckId).map((d) => labelFor(d));
+      issues.push(`${labelFor(deck)} has a slide here with no counterpart in ${others.join(", ") || "the other deck(s)"}.`);
+    } else if (missingCells.length > 0) {
+      textStatus = "structural";
       for (const missing of missingCells) {
         const deck = decks.find((d) => d.deckId === missing.deckId)!;
         const isRealigned = alignments.has(deck.deckId);
@@ -228,6 +277,8 @@ export function buildComparisonReport(
     let overallStatus: MatchStatus;
     if (textStatus === "mismatch" || buildStatus === "mismatch" || mediaStatus === "mismatch" || transitionStatus === "mismatch") {
       overallStatus = "mismatch";
+    } else if (textStatus === "structural") {
+      overallStatus = "structural";
     } else if (textStatus === "partial") {
       overallStatus = "partial";
     } else if (transitionStatus === "info" || mediaStatus === "info") {
@@ -236,10 +287,18 @@ export function buildComparisonReport(
       overallStatus = "match";
     }
 
-    if (overallStatus === "mismatch" || overallStatus === "partial") issueCount++;
+    if (overallStatus === "mismatch" || overallStatus === "partial" || overallStatus === "structural") issueCount++;
+
+    const label =
+      column.kind === "extra"
+        ? `Extra in ${labelFor(decks.find((d) => d.deckId === column.deckId)!)} (${
+            column.anchorRefIndex === 0 ? "before slide 1" : `after slide ${column.anchorRefIndex}`
+          })`
+        : String(column.refIndex);
 
     rows.push({
-      slideIndex,
+      slideIndex: column.kind === "extra" ? column.anchorRefIndex + 0.001 * (column.seq + 1) : column.refIndex,
+      label,
       cells,
       textMatch: { status: textStatus, minSimilarity },
       buildMatch: { status: buildStatus },
@@ -263,7 +322,7 @@ export function buildComparisonReport(
     settings,
     summary: {
       decksCompared: decks.length,
-      totalAlignedSlides: maxSlideCount,
+      totalAlignedSlides: rows.length,
       issueCount,
       realignmentWarnings,
     },
