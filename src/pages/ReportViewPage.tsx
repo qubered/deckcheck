@@ -31,7 +31,7 @@ export function ReportViewPage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-12 print:max-w-full print:p-0">
       <Link
-        to={`/shows/${showId}`}
+        to={`/app/shows/${showId}`}
         className="mb-4 inline-block text-sm text-(--color-muted) hover:text-(--color-red) print:hidden"
       >
         ← Back to show

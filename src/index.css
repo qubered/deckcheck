@@ -25,6 +25,10 @@
   --color-red: #e0363d;
   --color-red-700: #b21f26;
 
+  /* Fixed cream — deliberately does NOT swap with theme (unlike --color-ink, which does).
+     Reserved for buttons/spotlight moments sitting on a solid red block. */
+  --color-cream: #f5efe2;
+
   /* Status */
   --color-ok: #4fd888;
   --color-warn: #eba53a;

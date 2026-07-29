@@ -20,7 +20,7 @@ export function ShowDetailPage() {
   if (show === null || show === undefined) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-12">
-        <EmptyState title="Show not found" action={<Link to="/"><Button variant="outline">Back to Shows</Button></Link>} />
+        <EmptyState title="Show not found" action={<Link to="/app"><Button variant="outline">Back to Shows</Button></Link>} />
       </div>
     );
   }
@@ -32,7 +32,7 @@ export function ShowDetailPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
-      <Link to="/" className="mb-4 inline-block text-sm text-(--color-muted) hover:text-(--color-red)">
+      <Link to="/app" className="mb-4 inline-block text-sm text-(--color-muted) hover:text-(--color-red)">
         ← All Shows
       </Link>
       <header className="mb-8 flex items-start justify-between gap-4">
@@ -40,14 +40,14 @@ export function ShowDetailPage() {
           <h1 className="font-display text-2xl font-extrabold text-(--color-ink)">{show.name}</h1>
           {show.notes && <p className="mt-1 text-(--color-muted)">{show.notes}</p>}
         </div>
-        <Button onClick={() => navigate(`/shows/${show.id}/run`)}>+ Run new report</Button>
+        <Button onClick={() => navigate(`/app/shows/${show.id}/run`)}>+ Run new report</Button>
       </header>
 
       {reports && reports.length === 0 && (
         <EmptyState
           title="No reports yet"
           description="Run a comparison across this show's decks to generate the first report."
-          action={<Button onClick={() => navigate(`/shows/${show.id}/run`)}>+ Run new report</Button>}
+          action={<Button onClick={() => navigate(`/app/shows/${show.id}/run`)}>+ Run new report</Button>}
         />
       )}
 
@@ -63,7 +63,7 @@ export function ShowDetailPage() {
             <Card
               key={report.id}
               className="flex cursor-pointer items-center justify-between px-5 py-4 hover:border-(--color-red)"
-              onClick={() => navigate(`/shows/${show.id}/reports/${report.id}`)}
+              onClick={() => navigate(`/app/shows/${show.id}/reports/${report.id}`)}
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
