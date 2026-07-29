@@ -13,16 +13,22 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   try {
     const decks: DeckFingerprint[] = [];
     for (const file of files) {
-      const deck = await parsePptx(file.deckId, file.filename, file.userLabel, file.buffer, (slidesParsed, totalSlides) => {
-        post({ type: "progress", jobId, deckId: file.deckId, slidesParsed, totalSlides });
-      });
-      decks.push(deck);
-      post({ type: "deckParsed", jobId, deck });
+      try {
+        const deck = await parsePptx(file.deckId, file.filename, file.userLabel, file.buffer, (slidesParsed, totalSlides) => {
+          post({ type: "progress", jobId, deckId: file.deckId, slidesParsed, totalSlides });
+        });
+        decks.push(deck);
+        post({ type: "deckParsed", jobId, deck });
+      } catch (err) {
+        // Name the file up front — a bare exception message ("end of central directory record
+        // not found") means nothing without knowing which of several uploaded files caused it.
+        throw new Error(`Couldn't read "${file.filename}" — ${err instanceof Error ? err.message : "it may not be a valid .pptx file"}.`);
+      }
     }
 
     const report = buildComparisonReport(decks, settings);
     post({ type: "done", jobId, report });
   } catch (err) {
-    post({ type: "error", jobId, message: err instanceof Error ? err.message : "Unknown parsing error" });
+    post({ type: "error", jobId, message: err instanceof Error ? err.message : "Something went wrong while reading these files." });
   }
 };

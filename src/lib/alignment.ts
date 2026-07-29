@@ -19,6 +19,11 @@ export interface AlignmentResult {
    * still line up 1:1 across the whole reference range despite the differing total count (e.g.
    * the extra/missing slides are all at the very end). */
   misalignedFromSlide: number | null;
+  /** This deck's own slide indices (1-based) that have no reference counterpart at all, keyed by
+   * the reference index they immediately follow (0 = before the reference's first slide). The
+   * caller surfaces each of these as its own report row instead of dropping them — a deck with
+   * more slides than the reference should still show every one of them. */
+  extraOwnSlidesByAnchor: Map<number, number[]>;
 }
 
 /**
@@ -49,6 +54,7 @@ export function alignDeckToReference(reference: DeckFingerprint, outlier: DeckFi
   }
 
   const referenceToOwnIndex = new Map<number, number | null>();
+  const extraOwnSlidesByAnchor = new Map<number, number[]>();
   let i = n;
   let j = m;
   while (i > 0 || j > 0) {
@@ -62,12 +68,16 @@ export function alignDeckToReference(reference: DeckFingerprint, outlier: DeckFi
       referenceToOwnIndex.set(i, null);
       i--;
     } else {
-      // Outlier has an extra slide not present in the reference — dropped from the aligned view
-      // (no reference row to attach it to); its presence is still covered by the deck-level
-      // slide-count warning, matching the "flagged fallback," not a full re-indexed report.
+      // Outlier has an extra slide not present in the reference. `i` hasn't moved yet, so in
+      // forward order this slide sits immediately after reference index `i` (0 = before the
+      // reference's first slide) — record it there instead of dropping it.
+      const atAnchor = extraOwnSlidesByAnchor.get(i) ?? [];
+      atAnchor.push(j); // pushed in reverse (descending) order; reversed below once traceback finishes
+      extraOwnSlidesByAnchor.set(i, atAnchor);
       j--;
     }
   }
+  for (const ownIndices of extraOwnSlidesByAnchor.values()) ownIndices.reverse();
 
   let misalignedFromSlide: number | null = null;
   for (let refIndex = 1; refIndex <= n; refIndex++) {
@@ -77,5 +87,5 @@ export function alignDeckToReference(reference: DeckFingerprint, outlier: DeckFi
     }
   }
 
-  return { referenceToOwnIndex, misalignedFromSlide };
+  return { referenceToOwnIndex, misalignedFromSlide, extraOwnSlidesByAnchor };
 }

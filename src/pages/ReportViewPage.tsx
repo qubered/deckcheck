@@ -2,6 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useParams } from "react-router-dom";
 import { db } from "@/lib/db";
 import { reportToCsv, downloadCsv } from "@/lib/csv";
+import { summarizeBuildEffects } from "@/lib/effectLabels";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -109,7 +110,7 @@ export function ReportViewPage() {
                 key={row.slideIndex}
                 className={`border-b border-(--color-line) break-inside-avoid ${row.realignment ? "border-l-4 border-l-(--color-warn) bg-(--color-warn)/5" : ""}`}
               >
-                <td className="px-4 py-3 align-top font-mono text-(--color-ink-2)">{row.slideIndex}</td>
+                <td className="px-4 py-3 align-top font-mono text-(--color-ink-2)">{row.label}</td>
                 {row.cells.map((cell) => (
                   <td key={cell.deckId} className="max-w-64 px-4 py-3 align-top print:max-w-none">
                     {cell.slideIndex === null ? (
@@ -119,9 +120,13 @@ export function ReportViewPage() {
                         <p className="truncate text-(--color-ink) print:whitespace-normal" title={cell.textContent}>
                           {cell.textContent || <span className="text-(--color-faint)">(no text)</span>}
                         </p>
-                        <p className="mt-1 text-xs text-(--color-muted)">
-                          {cell.buildClickCount} click{cell.buildClickCount === 1 ? "" : "s"}
-                        </p>
+                        {cell.builds.length > 0 ? (
+                          <p className="mt-1 text-xs text-(--color-ink-2)">
+                            ▸ {cell.buildClickCount} build{cell.buildClickCount === 1 ? "" : "s"} — {summarizeBuildEffects(cell.builds)}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs text-(--color-faint)">No builds</p>
+                        )}
                         {cell.hasAutoAdvance && (
                           <p className="mt-1 text-xs text-(--color-warn)">⚠ auto-advance {cell.autoAdvanceMs}ms</p>
                         )}

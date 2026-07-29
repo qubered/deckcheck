@@ -4,6 +4,7 @@ import type { MatchStatus } from "@/lib/types";
 const config: Record<MatchStatus, { tone: BadgeTone; label: string }> = {
   match: { tone: "ok", label: "Match" },
   partial: { tone: "warn", label: "Partial match" },
+  structural: { tone: "warn", label: "No counterpart" },
   mismatch: { tone: "danger", label: "Mismatch" },
   info: { tone: "info", label: "Flagged" },
 };

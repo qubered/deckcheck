@@ -69,7 +69,10 @@ export interface DeckFingerprint {
 
 // Diff / report structures (§7 / §8)
 
-export type MatchStatus = "match" | "partial" | "mismatch" | "info";
+// "structural" covers slide-count differences (a slide missing on one side, or an extra slide
+// with no counterpart at all) — kept distinct from "mismatch" so a deck simply running long/short
+// doesn't read as alarmingly as genuinely divergent content on a shared slide.
+export type MatchStatus = "match" | "partial" | "structural" | "mismatch" | "info";
 
 export interface SlideCellResult {
   deckId: string;
@@ -84,6 +87,10 @@ export interface SlideCellResult {
 
 export interface SlideDiffRow {
   slideIndex: number;
+  /** Human-facing row label — the plain slide number for a normal row, or a description like
+   * "Extra in Deck B (after slide 12)" for a row that only exists because one deck has a slide
+   * with no counterpart anywhere else. Always prefer this over `slideIndex` for display. */
+  label: string;
   cells: SlideCellResult[];
   textMatch: { status: MatchStatus; minSimilarity: number };
   buildMatch: { status: MatchStatus };
