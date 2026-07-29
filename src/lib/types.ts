@@ -89,7 +89,7 @@ export interface SlideDiffRow {
   transitionFlag: { status: MatchStatus; present: boolean };
   mediaFlag: { status: MatchStatus; present: boolean; consistent: boolean };
   overallStatus: MatchStatus;
-  issues: string[]; // human-readable flags, e.g. "Pillars: build mismatch (4 vs 3 clicks)"
+  issues: string[]; // human-readable flags, e.g. "deck2.pptx: build mismatch (4 vs 3 clicks)"
   realignment?: { deckId: string; note: string };
 }
 

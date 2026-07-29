@@ -2,9 +2,10 @@
 
 A multi-screen PowerPoint sync checker for LED wall / multi-surface event production.
 
-Drop 2+ `.pptx` files for a show (Wide, Twins, Pillars, or any screen labels you use) and get a
-per-slide diff report: text content, transitions, and (coming in Phase 2) build/click counts and
-media autoplay — flagging anything out of sync before a show.
+Drop 2+ `.pptx` files and get a per-slide diff report: text content, transitions, build/click
+counts, and media autoplay — flagging anything out of sync before a show. Each deck can carry an
+optional label of your own choosing; if you skip it, the deck is just identified by its filename —
+there's nothing screen-specific hardcoded, so it works for any set of decks you need kept in sync.
 
 **100% client-side.** Everything — unzipping, parsing, diffing, and report rendering — runs in
 your browser via a Web Worker. No backend, no upload endpoint, nothing about your decks ever
