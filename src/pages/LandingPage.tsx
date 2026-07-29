@@ -2,54 +2,63 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { GitHubIcon } from "@/components/GitHubIcon";
+import { DoodleArrow, Squiggle, Sticker } from "@/components/Squiggle";
 
 const REPO_URL = "https://github.com/qubered/deckcheck";
 
 const STEPS = [
-  {
-    n: "1",
-    title: "Drop your decks",
-    body: "Drag in 2 or more .pptx files — one per screen, room, or feed. Label them if you like; it defaults to the filename.",
-  },
-  {
-    n: "2",
-    title: "Parsed in your browser",
-    body: "Each file is unzipped and read locally, right where you dropped it. Nothing is sent anywhere.",
-  },
-  {
-    n: "3",
-    title: "Review the diff",
-    body: "A per-slide report flags text mismatches, build/click count differences, auto-advancing transitions, and autoplay media.",
-  },
-  {
-    n: "4",
-    title: "Export or print",
-    body: "Download a CSV, or print a clean report straight from your browser — no extra software.",
-  },
+  { n: "1", color: "var(--color-module-show)", title: "Drop your decks", body: "2+ .pptx files. Label them or don't." },
+  { n: "2", color: "var(--color-module-report)", title: "Parsed right here", body: "Unzipped and read in this tab. That's it." },
+  { n: "3", color: "var(--color-module-deck)", title: "Get the diff", body: "Text, clicks, transitions, autoplay — flagged." },
+  { n: "4", color: "var(--color-ok)", title: "Export or print", body: "CSV, or print straight from your browser." },
 ];
 
 const FEATURES = [
-  {
-    color: "var(--color-module-show)",
-    title: "Text & content diff",
-    body: "Fuzzy text matching catches typos, rewrites, and dropped lines between decks — not just exact mismatches.",
-  },
-  {
-    color: "var(--color-module-report)",
-    title: "Build & click-count matching",
-    body: "Counts every click-triggered animation step per slide, so a deck that needs 4 clicks to play out doesn't quietly fall out of sync with one that needs 3.",
-  },
-  {
-    color: "var(--color-module-deck)",
-    title: "Media autoplay detection",
-    body: "Flags autoplaying video or audio — and whether every screen agrees on it — since it's one of the easiest things to miss in a manual review.",
-  },
-  {
-    color: "var(--color-ok)",
-    title: "Handles inserted slides",
-    body: "If one deck has an extra or missing slide, DeckCheck realigns the rest by content instead of cascading a false mismatch through the whole deck.",
-  },
+  { color: "var(--color-module-show)", title: "Text diff", body: "Fuzzy-matches slide text, so a typo doesn't slip past as \"different.\"" },
+  { color: "var(--color-module-report)", title: "Click-count matching", body: "One deck needs 4 clicks, another needs 3? Caught." },
+  { color: "var(--color-module-deck)", title: "Autoplay detection", body: "Flags autoplaying video/audio, and whether every screen agrees." },
+  { color: "var(--color-ok)", title: "Handles inserted slides", body: "One deck has an extra slide? It realigns instead of freaking out." },
 ];
+
+// Loose scatter of decorative shapes behind the hero — no meaning, just texture.
+function HeroConfetti() {
+  const shapes = [
+    { style: { top: "8%", left: "6%", rotate: -12 }, size: 22, kind: "circle", color: "var(--color-module-show)" },
+    { style: { top: "18%", right: "9%", rotate: 18 }, size: 16, kind: "plus", color: "var(--color-module-deck)" },
+    { style: { top: "62%", left: "3%", rotate: 8 }, size: 18, kind: "square", color: "var(--color-module-report)" },
+    { style: { top: "72%", right: "5%", rotate: -20 }, size: 26, kind: "circle", color: "var(--color-ok)" },
+    { style: { top: "2%", left: "42%", rotate: 6 }, size: 14, kind: "plus", color: "var(--color-red)" },
+  ] as const;
+
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-60">
+      {shapes.map((s, i) => (
+        <div
+          key={i}
+          className="absolute"
+          style={{
+            top: "top" in s.style ? s.style.top : undefined,
+            left: "left" in s.style ? s.style.left : undefined,
+            right: "right" in s.style ? s.style.right : undefined,
+            transform: `rotate(${s.style.rotate}deg)`,
+          }}
+        >
+          {s.kind === "circle" && (
+            <div style={{ width: s.size, height: s.size, borderColor: s.color }} className="rounded-full border-[3px]" />
+          )}
+          {s.kind === "square" && (
+            <div style={{ width: s.size, height: s.size, borderColor: s.color }} className="rounded-md border-[3px]" />
+          )}
+          {s.kind === "plus" && (
+            <div style={{ color: s.color, fontSize: s.size }} className="font-display font-black leading-none">
+              +
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function LandingPage() {
   return (
@@ -75,39 +84,43 @@ export function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <header className="relative overflow-hidden px-6 pt-20 pb-16 text-center">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[480px]"
-          style={{
-            background: "radial-gradient(ellipse 800px 400px at 50% 0%, rgba(224,54,61,0.11), transparent 70%)",
-          }}
-        />
-        <p className="font-hand text-lg text-(--color-red)">free · open source · runs entirely in your browser</p>
-        <h1 className="mx-auto mt-3 max-w-3xl font-display text-4xl font-extrabold leading-tight text-(--color-ink) sm:text-5xl">
-          Make sure every screen tells{" "}
-          <span className="underline decoration-(--color-red) decoration-4 underline-offset-4">the same story</span>
+      <header className="relative overflow-hidden px-6 pt-20 pb-14 text-center">
+        <HeroConfetti />
+        <p className="font-hand text-lg text-(--color-red)" style={{ display: "inline-block", transform: "rotate(-2deg)" }}>
+          no server · no upload · no bs
+        </p>
+        <h1 className="relative mx-auto mt-3 max-w-2xl font-display text-4xl font-extrabold leading-tight text-(--color-ink) sm:text-5xl">
+          Find the deck that's{" "}
+          <span className="relative inline-block whitespace-nowrap">
+            out of sync
+            <Squiggle className="absolute -bottom-2 left-0 h-3 w-full" />
+          </span>
         </h1>
-        <p className="mx-auto mt-5 max-w-xl text-lg text-(--color-ink-2)">
-          DeckCheck compares PowerPoint decks running across multiple screens — a town hall, a set of meeting rooms,
-          a bank of displays — and flags anything out of sync before you present: mismatched text, mismatched click
-          counts, transitions that auto-advance, media that autoplays.
+        <p className="mx-auto mt-6 max-w-lg text-lg text-(--color-ink-2)">
+          Drop 2+ PowerPoint files. Get a slide-by-slide diff — text, clicks, transitions, autoplay
+          media. Runs entirely in your browser.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link to="/app">
-            <Button>Open the app — it's free</Button>
+            <Button>Open the app</Button>
           </Link>
           <a href={REPO_URL} target="_blank" rel="noreferrer">
             <Button variant="outline">
               <GitHubIcon className="h-4 w-4" />
-              View on GitHub
+              Star on GitHub
             </Button>
           </a>
         </div>
-        <div className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-(--color-muted)">
-          <span>🔒 Nothing you upload — there's no upload</span>
-          <span>🆓 Free, no account, no limits</span>
-          <span>📖 Open source, MIT licensed</span>
+        <div className="mx-auto mt-12 flex max-w-lg flex-wrap items-center justify-center gap-4">
+          <Sticker color="var(--color-module-show)" rotate={-6}>
+            🔒 zero uploads
+          </Sticker>
+          <Sticker color="var(--color-module-report)" textColor="var(--color-espresso)" rotate={4}>
+            🆓 free forever
+          </Sticker>
+          <Sticker color="var(--color-module-deck)" rotate={-3}>
+            📖 MIT licensed
+          </Sticker>
         </div>
       </header>
 
@@ -115,9 +128,16 @@ export function LandingPage() {
       <section className="mx-auto max-w-5xl px-6 py-16">
         <h2 className="text-center font-display text-2xl font-extrabold text-(--color-ink)">How it works</h2>
         <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step) => (
-            <Card key={step.n} className="p-5">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-(--radius-pill) bg-(--color-red) font-display font-extrabold text-white">
+          {STEPS.map((step, i) => (
+            <Card
+              key={step.n}
+              className="p-5"
+              style={{ transform: `rotate(${i % 2 === 0 ? -1 : 1}deg)` }}
+            >
+              <div
+                className="mb-3 flex h-9 w-9 items-center justify-center rounded-(--radius-pill) font-display font-extrabold text-white"
+                style={{ background: step.color }}
+              >
                 {step.n}
               </div>
               <h3 className="font-display font-bold text-(--color-ink)">{step.title}</h3>
@@ -130,15 +150,17 @@ export function LandingPage() {
       {/* Features */}
       <section className="bg-(--color-paper-2) px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center font-display text-2xl font-extrabold text-(--color-ink)">
-            What it catches
-          </h2>
+          <h2 className="text-center font-display text-2xl font-extrabold text-(--color-ink)">What it catches</h2>
           <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
-            {FEATURES.map((f) => (
-              <Card key={f.title} className="flex gap-4 p-5">
+            {FEATURES.map((f, i) => (
+              <Card
+                key={f.title}
+                className="flex gap-4 p-5"
+                style={{ transform: `rotate(${i % 2 === 0 ? 1 : -1}deg)` }}
+              >
                 <div
-                  className="mt-0.5 h-10 w-10 shrink-0 rounded-(--radius-md) border-2 border-(--color-line-2)"
-                  style={{ background: f.color }}
+                  className="mt-0.5 h-10 w-10 shrink-0 rounded-(--radius-md) border-[3px] border-(--color-cream)"
+                  style={{ background: f.color, transform: "rotate(-6deg)" }}
                   aria-hidden="true"
                 />
                 <div>
@@ -152,45 +174,50 @@ export function LandingPage() {
       </section>
 
       {/* 100% client-side, explained simply */}
-      <section className="mx-auto max-w-4xl px-6 py-20">
-        <p className="text-center font-hand text-(--color-red)">the important part</p>
+      <section className="mx-auto max-w-3xl px-6 py-20">
+        <p className="text-center font-hand text-lg text-(--color-red)" style={{ transform: "rotate(1deg)" }}>
+          the important part
+        </p>
         <h2 className="mt-2 text-center font-display text-3xl font-extrabold text-(--color-ink)">
           Your files never leave your computer
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-(--color-ink-2)">
-          There's no upload button in DeckCheck, because there's nothing to upload to — there's no server at all.
-          In plain terms: a <code className="rounded bg-(--color-elevation) px-1.5 py-0.5 text-sm">.pptx</code> file
-          is really just a zip file full of XML. When you drop your decks in, your browser opens that zip file
-          itself — the same way it can open any file on your computer — reads the slides inside, and compares them.
-          The whole thing happens on your machine, in the tab you have open, and nothing about your decks is ever
-          sent anywhere.
+        <p className="mx-auto mt-4 max-w-xl text-center text-(--color-ink-2)">
+          There's no upload button, because there's no server. A{" "}
+          <code className="rounded bg-(--color-elevation) px-1.5 py-0.5 text-sm">.pptx</code> is just a zip file
+          full of XML — your browser opens it directly, the same way it'd open any file on your computer, reads
+          the slides, and compares them. Nothing gets sent anywhere. Ever.
         </p>
 
-        <Card className="mt-10 p-6 sm:p-8">
-          <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:justify-center sm:gap-4 sm:text-left">
-            <div className="rounded-(--radius-md) border-2 border-(--color-line-2) bg-(--color-elevation) px-4 py-3 font-mono text-sm text-(--color-ink)">
-              your decks
-            </div>
-            <span className="text-(--color-muted)">→</span>
-            <div className="rounded-(--radius-md) border-2 border-(--color-red) bg-(--color-red)/10 px-4 py-3 font-mono text-sm text-(--color-red)">
-              unzipped &amp; compared in your browser tab
-            </div>
-            <span className="text-(--color-muted)">→</span>
-            <div className="rounded-(--radius-md) border-2 border-(--color-line-2) bg-(--color-elevation) px-4 py-3 font-mono text-sm text-(--color-ink)">
-              your report
-            </div>
+        <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <div
+            className="rounded-(--radius-md) border-2 border-(--color-line-2) bg-(--color-elevation) px-4 py-3 font-mono text-sm text-(--color-ink)"
+            style={{ transform: "rotate(-2deg)" }}
+          >
+            your .pptx files
           </div>
-          <p className="mt-4 text-center text-xs text-(--color-faint)">
-            No arrow ever points off this page — that's the whole architecture.
-          </p>
-        </Card>
+          <span className="font-hand text-2xl text-(--color-muted)">↝</span>
+          <div
+            className="rounded-(--radius-md) border-[3px] border-dashed border-(--color-red) bg-(--color-red)/10 px-4 py-3 font-mono text-sm text-(--color-red)"
+            style={{ transform: "rotate(1deg)" }}
+          >
+            unzipped, right here, in this tab
+          </div>
+          <span className="font-hand text-2xl text-(--color-muted)">↝</span>
+          <div
+            className="rounded-(--radius-md) border-2 border-(--color-line-2) bg-(--color-elevation) px-4 py-3 font-mono text-sm text-(--color-ink)"
+            style={{ transform: "rotate(2deg)" }}
+          >
+            your report
+          </div>
+        </div>
+        <p className="mt-4 text-center text-xs text-(--color-faint)">No box in that diagram is a server. That's the whole trick.</p>
 
-        <ul className="mx-auto mt-10 flex max-w-xl flex-col gap-4">
+        <ul className="mx-auto mt-10 flex max-w-lg flex-col gap-3">
           {[
-            "No servers, no cloud storage, no database holding a copy of your decks.",
-            "Comparisons run in a Web Worker — a background thread inside your own browser — so even a big check doesn't freeze the page.",
-            "Report history is saved only in your browser's own local storage (IndexedDB). Nothing syncs to us, because there's no \"us\" to sync to.",
-            "Close the tab, clear your browser data, or just don't save the report — either way, nothing about your decks persists anywhere you don't control.",
+            "No servers, no cloud storage, no database with a copy of your decks.",
+            "Parsing runs in a Web Worker — a background thread — so it doesn't freeze the tab.",
+            "Report history lives in your browser's own storage (IndexedDB). There's no \"us\" for it to sync to.",
+            "Close the tab and it's gone, unless you chose to keep it. Your call, not ours.",
           ].map((line) => (
             <li key={line} className="flex gap-3 text-sm text-(--color-ink-2)">
               <span className="text-(--color-ok)">✓</span>
@@ -202,39 +229,51 @@ export function LandingPage() {
 
       {/* Free & open source */}
       <section className="bg-(--color-paper-2) px-6 py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="font-display text-3xl font-extrabold text-(--color-ink)">Free. Forever. No catch.</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-(--color-ink-2)">
-            DeckCheck is fully open source under the MIT license. No account, no sign-up, no usage limits, no
-            paid tier waiting behind a feature you actually need. Read every line of what it does with your files,
-            self-host it, fork it, or send a pull request — it's yours as much as it's ours.
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="font-display text-3xl font-extrabold text-(--color-ink)">MIT licensed. That's it.</h2>
+          <p className="mx-auto mt-4 max-w-xl text-(--color-ink-2)">
+            No account, no paywall, no "contact sales." Read the code, run it locally, fork it, self-host it,
+            send a PR. It's yours as much as it's ours.
           </p>
+          <div className="mt-6 inline-block rounded-(--radius-md) border-2 border-(--color-line-2) bg-(--color-elevation) px-5 py-3 text-left font-mono text-sm text-(--color-ink-2)">
+            git clone {REPO_URL}.git
+            <br />
+            cd deckcheck &amp;&amp; npm install &amp;&amp; npm run dev
+          </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a href={REPO_URL} target="_blank" rel="noreferrer">
               <Button>
                 <GitHubIcon className="h-4 w-4" />
-                View source on GitHub
+                View source
               </Button>
             </a>
             <a href={`${REPO_URL}/blob/main/LICENSE`} target="_blank" rel="noreferrer">
-              <Button variant="outline">MIT License</Button>
+              <Button variant="outline">Read the license</Button>
             </a>
           </div>
         </div>
       </section>
 
       {/* Closing CTA */}
-      <section className="bg-(--color-red) px-6 py-16 text-center">
-        <h2 className="font-display text-3xl font-extrabold text-white">Ready to check your decks?</h2>
-        <p className="mt-2 text-white/85">No install, no account — just open it and drop your files in.</p>
-        <Link to="/app" className="mt-6 inline-block">
-          <Button variant="cream">Open the app</Button>
-        </Link>
+      <section className="relative bg-(--color-red) px-6 py-16 text-center">
+        <h2 className="font-display text-3xl font-extrabold text-white">Go check your decks.</h2>
+        <p className="mt-2 text-white/85">No install, no account, no waiting.</p>
+        <div className="relative mt-6 inline-block">
+          <Link to="/app">
+            <Button variant="cream">Open the app</Button>
+          </Link>
+          <div className="absolute top-1/2 left-full ml-2 hidden -translate-y-1/2 items-center sm:flex">
+            <DoodleArrow className="h-12 w-14 -scale-x-100 text-white" color="currentColor" />
+            <span className="-ml-1 font-hand text-white/90" style={{ transform: "rotate(-3deg)" }}>
+              yes, really
+            </span>
+          </div>
+        </div>
       </section>
 
       <footer className="px-6 py-10 text-center text-sm text-(--color-faint)">
         <p>
-          DeckCheck — open source, MIT licensed.{" "}
+          DeckCheck — MIT licensed, open source.{" "}
           <a href={REPO_URL} target="_blank" rel="noreferrer" className="underline hover:text-(--color-red)">
             github.com/qubered/deckcheck
           </a>
