@@ -1,19 +1,23 @@
 # DeckCheck
 
-A multi-screen PowerPoint sync checker for LED wall / multi-surface event production.
+A multi-screen PowerPoint sync checker — for town halls, conference rooms, video walls, or any
+setup where the same content needs to run in sync across multiple displays driven by separate
+files.
 
 Drop 2+ `.pptx` files and get a per-slide diff report: text content, transitions, build/click
-counts, and media autoplay — flagging anything out of sync before a show. Each deck can carry an
-optional label of your own choosing; if you skip it, the deck is just identified by its filename —
-there's nothing screen-specific hardcoded, so it works for any set of decks you need kept in sync.
+counts, and media autoplay — flagging anything out of sync before you present. Each deck can carry
+an optional label of your own choosing; if you skip it, the deck is just identified by its
+filename — there's nothing screen-specific hardcoded, so it works for any set of decks you need
+kept in sync.
 
 **100% client-side.** Everything — unzipping, parsing, diffing, and report rendering — runs in
 your browser via a Web Worker. No backend, no upload endpoint, nothing about your decks ever
 leaves the machine. Report history is saved locally via IndexedDB (Dexie); raw `.pptx` files are
 never persisted, only the parsed diff results.
 
-Content model: **Shows → Reports.** A Show is an event/production; a Report is one comparison run
-within it (first-draft check, post-revision recheck, day-of final, etc.).
+Content model: **Shows → Reports.** A Show is an event or presentation (an all-hands, a conference
+session, a multi-room broadcast); a Report is one comparison run within it (first-draft check,
+post-revision recheck, day-of final check, etc.).
 
 Built on the [RVLT Flow design language](https://github.com/RVLT-Labs/rvlt-designlanguage/blob/main/DESIGN.md).
 

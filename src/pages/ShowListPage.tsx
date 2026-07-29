@@ -34,7 +34,7 @@ export function ShowListPage() {
     <div className="mx-auto max-w-4xl px-6 py-12">
       <header className="mb-8 flex items-center justify-between">
         <div>
-          <p className="font-hand text-(--color-red)">production sync checker</p>
+          <p className="font-hand text-(--color-red)">multi-screen sync checker</p>
           <h1 className="font-display text-3xl font-extrabold text-(--color-ink)">DeckCheck</h1>
         </div>
         <Button onClick={() => setModalOpen(true)}>+ New Show</Button>
@@ -43,7 +43,7 @@ export function ShowListPage() {
       {shows && shows.length === 0 && (
         <EmptyState
           title="No shows yet"
-          description="A Show is an event or production — create one, then drop in your decks to run a comparison."
+          description="A Show is an event or presentation — create one, then drop in your decks to run a comparison."
           action={<Button onClick={() => setModalOpen(true)}>+ New Show</Button>}
         />
       )}
@@ -87,13 +87,13 @@ export function ShowListPage() {
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder='e.g. "Pippin — Opening Night"'
+              placeholder='e.g. "Q3 All-Hands — Sydney HQ"'
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             />
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold text-(--color-ink-2)">Notes (optional)</label>
-            <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Venue, date, client..." />
+            <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Location, date, stakeholders..." />
           </div>
           <div className="mt-2 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setModalOpen(false)}>
