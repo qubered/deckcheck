@@ -76,6 +76,7 @@ export interface SlideCellResult {
   slideIndex: number | null; // null if this deck has no aligned slide here
   textContent: string;
   buildClickCount: number;
+  builds: BuildStep[]; // full step list — used for the informational effect-type comparison
   hasAutoAdvance: boolean;
   autoAdvanceMs: number | null;
   hasAutoplayMedia: boolean;
@@ -93,10 +94,28 @@ export interface SlideDiffRow {
   realignment?: { deckId: string; note: string };
 }
 
+// "soft" (default): presence alone is an informational ⚠️ flag; only inconsistency across the
+// group escalates to a ❌ mismatch. "hard": presence alone is always a ❌ mismatch, since
+// auto-advancing/autoplaying content is inherently risky on synced show content regardless of
+// whether every deck agrees (spec §12 open decision — configurable per-show).
+export type FlagSeverity = "soft" | "hard";
+
+export interface ReportSettings {
+  fuzzyThreshold: number;
+  autoAdvanceSeverity: FlagSeverity;
+  autoplaySeverity: FlagSeverity;
+}
+
+export const DEFAULT_REPORT_SETTINGS: ReportSettings = {
+  fuzzyThreshold: 0.85,
+  autoAdvanceSeverity: "soft",
+  autoplaySeverity: "soft",
+};
+
 export interface ComparisonReport {
   decks: Array<{ deckId: string; filename: string; userLabel: string | null; slideCount: number; warnings: string[] }>;
   rows: SlideDiffRow[];
-  fuzzyThreshold: number;
+  settings: ReportSettings;
   summary: {
     decksCompared: number;
     totalAlignedSlides: number;
@@ -111,7 +130,7 @@ export type WorkerRequest = {
   type: "parse";
   jobId: string;
   files: Array<{ deckId: string; filename: string; userLabel: string | null; buffer: ArrayBuffer }>;
-  fuzzyThreshold: number;
+  settings: ReportSettings;
 };
 
 export type WorkerResponse =

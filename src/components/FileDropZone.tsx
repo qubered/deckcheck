@@ -6,6 +6,15 @@ export interface PendingFile {
   label: string;
 }
 
+// Soft, non-blocking heads-up only (spec §12) — very large decks (usually heavy embedded video)
+// can make in-browser unzip/parse slow. There's no server cost to worry about, just the user's
+// own browser performance, so this never blocks the run.
+const LARGE_FILE_BYTES = 50 * 1024 * 1024;
+
+function formatMb(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(0)}MB`;
+}
+
 export function FileDropZone({
   files,
   onFilesChange,
@@ -68,26 +77,33 @@ export function FileDropZone({
           {files.map((pf) => (
             <li
               key={pf.id}
-              className="flex items-center gap-3 rounded-(--radius-md) border-2 border-(--color-line) bg-(--color-paper-2) px-4 py-2.5"
+              className="rounded-(--radius-md) border-2 border-(--color-line) bg-(--color-paper-2) px-4 py-2.5"
             >
-              <span className="min-w-0 flex-1 truncate text-sm text-(--color-ink)">{pf.file.name}</span>
-              <input
-                type="text"
-                placeholder="Label (optional) — defaults to the filename"
-                value={pf.label}
-                onChange={(e) =>
-                  onFilesChange(files.map((f) => (f.id === pf.id ? { ...f, label: e.target.value } : f)))
-                }
-                className="w-56 rounded-(--radius-md) border-2 border-(--color-line) bg-(--color-paper) px-2.5 py-1.5 text-sm text-(--color-ink) outline-none focus:border-(--color-red)"
-              />
-              <button
-                type="button"
-                onClick={() => onFilesChange(files.filter((f) => f.id !== pf.id))}
-                className="text-(--color-faint) hover:text-(--color-timeout)"
-                aria-label={`Remove ${pf.file.name}`}
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-3">
+                <span className="min-w-0 flex-1 truncate text-sm text-(--color-ink)">{pf.file.name}</span>
+                <input
+                  type="text"
+                  placeholder="Label (optional) — defaults to the filename"
+                  value={pf.label}
+                  onChange={(e) =>
+                    onFilesChange(files.map((f) => (f.id === pf.id ? { ...f, label: e.target.value } : f)))
+                  }
+                  className="w-56 rounded-(--radius-md) border-2 border-(--color-line) bg-(--color-paper) px-2.5 py-1.5 text-sm text-(--color-ink) outline-none focus:border-(--color-red)"
+                />
+                <button
+                  type="button"
+                  onClick={() => onFilesChange(files.filter((f) => f.id !== pf.id))}
+                  className="text-(--color-faint) hover:text-(--color-timeout)"
+                  aria-label={`Remove ${pf.file.name}`}
+                >
+                  ✕
+                </button>
+              </div>
+              {pf.file.size > LARGE_FILE_BYTES && (
+                <p className="mt-1.5 text-xs text-(--color-warn)">
+                  ⚠ Large file ({formatMb(pf.file.size)}) — parsing may take a while in your browser.
+                </p>
+              )}
             </li>
           ))}
         </ul>

@@ -1,14 +1,14 @@
 import { distance } from "fastest-levenshtein";
 import { alignDeckToReference } from "./alignment";
+import { DEFAULT_REPORT_SETTINGS } from "./types";
 import type {
   ComparisonReport,
   DeckFingerprint,
   MatchStatus,
+  ReportSettings,
   SlideCellResult,
   SlideDiffRow,
 } from "./types";
-
-export const DEFAULT_FUZZY_THRESHOLD = 0.85;
 
 function similarity(a: string, b: string): number {
   if (a === b) return 1;
@@ -29,6 +29,7 @@ function cellFor(deck: DeckFingerprint, actualIndex: number | null): SlideCellRe
       slideIndex: null,
       textContent: "",
       buildClickCount: 0,
+      builds: [],
       hasAutoAdvance: false,
       autoAdvanceMs: null,
       hasAutoplayMedia: false,
@@ -39,10 +40,36 @@ function cellFor(deck: DeckFingerprint, actualIndex: number | null): SlideCellRe
     slideIndex: slide.slideIndex,
     textContent: slide.textContent,
     buildClickCount: slide.buildClickCount,
+    builds: slide.builds,
     hasAutoAdvance: slide.transition.autoAdvanceMs !== null,
     autoAdvanceMs: slide.transition.autoAdvanceMs,
     hasAutoplayMedia: slide.media.some((m) => m.autoplay),
   };
+}
+
+// Build target/effect comparison (spec §7): informational only in v1 — never affects
+// overallStatus/issueCount, just surfaced as an advisory note per step index.
+function compareEffects(presentCells: SlideCellResult[], decks: DeckFingerprint[]): string[] {
+  const notes: string[] = [];
+  const maxStep = presentCells.reduce(
+    (max, c) => Math.max(max, ...c.builds.map((b) => b.stepIndex), 0),
+    0,
+  );
+  for (let step = 1; step <= maxStep; step++) {
+    const atStep = presentCells
+      .map((c) => ({ deckId: c.deckId, build: c.builds.find((b) => b.stepIndex === step) }))
+      .filter((x): x is { deckId: string; build: NonNullable<(typeof x)["build"]> } => x.build !== undefined);
+    if (atStep.length < 2) continue;
+    const distinctEffects = new Set(atStep.map((x) => x.build.effectType ?? "(none)"));
+    if (distinctEffects.size > 1) {
+      notes.push(
+        `ℹ Step ${step} effect type differs — ${atStep
+          .map((x) => `${labelFor(decks.find((d) => d.deckId === x.deckId)!)}: ${x.build.effectType ?? "(none)"}`)
+          .join(", ")}`,
+      );
+    }
+  }
+  return notes;
 }
 
 function labelFor(deck: DeckFingerprint): string {
@@ -59,8 +86,9 @@ function labelFor(deck: DeckFingerprint): string {
  */
 export function buildComparisonReport(
   decks: DeckFingerprint[],
-  fuzzyThreshold: number = DEFAULT_FUZZY_THRESHOLD,
+  settings: ReportSettings = DEFAULT_REPORT_SETTINGS,
 ): ComparisonReport {
+  const { fuzzyThreshold, autoAdvanceSeverity, autoplaySeverity } = settings;
   const rows: SlideDiffRow[] = [];
   let issueCount = 0;
 
@@ -145,8 +173,15 @@ export function buildComparisonReport(
 
     // Transition auto-advance: flagged whenever present on any deck, independent of consistency —
     // auto-advance is inherently risky on synced content regardless of whether every deck agrees.
+    // Severity is configurable per-show (spec §12): "soft" keeps it informational, "hard" escalates
+    // bare presence to a mismatch.
     const autoAdvanceCells = presentCells.filter((c) => c.hasAutoAdvance);
     const transitionPresent = autoAdvanceCells.length > 0;
+    const transitionStatus: MatchStatus = transitionPresent
+      ? autoAdvanceSeverity === "hard"
+        ? "mismatch"
+        : "info"
+      : "match";
     if (transitionPresent) {
       for (const c of autoAdvanceCells) {
         const deck = decks.find((d) => d.deckId === c.deckId)!;
@@ -166,15 +201,22 @@ export function buildComparisonReport(
             .map((c) => `${labelFor(decks.find((d) => d.deckId === c.deckId)!)}: ${c.buildClickCount} click${c.buildClickCount === 1 ? "" : "s"}`)
             .join(", ")}`,
         );
+      } else {
+        // Click counts agree, so step indices line up meaningfully across decks — worth checking
+        // whether the same step plays a different effect (fade vs. wipe, etc.) on each deck.
+        issues.push(...compareEffects(presentCells, decks));
       }
     }
 
-    // Media autoplay: flagged whenever present (inherently risky on synced content), escalated to
-    // a hard mismatch if only some decks in the group have it.
+    // Media autoplay: flagged whenever present (inherently risky on synced content), always
+    // escalated to a mismatch if only some decks in the group have it (that's a real
+    // inconsistency, not a severity choice), and additionally escalated on bare presence when
+    // this show's autoplay severity is set to "hard".
     const autoplayCells = presentCells.filter((c) => c.hasAutoplayMedia);
     const mediaPresent = autoplayCells.length > 0;
     const mediaConsistent = !mediaPresent || autoplayCells.length === presentCells.length;
-    const mediaStatus: MatchStatus = mediaPresent && !mediaConsistent ? "mismatch" : mediaPresent ? "info" : "match";
+    const mediaStatus: MatchStatus =
+      mediaPresent && (!mediaConsistent || autoplaySeverity === "hard") ? "mismatch" : mediaPresent ? "info" : "match";
     if (mediaPresent) {
       issues.push(
         `Autoplay media on: ${autoplayCells.map((c) => labelFor(decks.find((d) => d.deckId === c.deckId)!)).join(", ")}${
@@ -184,10 +226,15 @@ export function buildComparisonReport(
     }
 
     let overallStatus: MatchStatus;
-    if (textStatus === "mismatch" || buildStatus === "mismatch" || mediaStatus === "mismatch") overallStatus = "mismatch";
-    else if (textStatus === "partial") overallStatus = "partial";
-    else if (transitionPresent || mediaStatus === "info") overallStatus = "info";
-    else overallStatus = "match";
+    if (textStatus === "mismatch" || buildStatus === "mismatch" || mediaStatus === "mismatch" || transitionStatus === "mismatch") {
+      overallStatus = "mismatch";
+    } else if (textStatus === "partial") {
+      overallStatus = "partial";
+    } else if (transitionStatus === "info" || mediaStatus === "info") {
+      overallStatus = "info";
+    } else {
+      overallStatus = "match";
+    }
 
     if (overallStatus === "mismatch" || overallStatus === "partial") issueCount++;
 
@@ -196,7 +243,7 @@ export function buildComparisonReport(
       cells,
       textMatch: { status: textStatus, minSimilarity },
       buildMatch: { status: buildStatus },
-      transitionFlag: { status: transitionPresent ? "info" : "match", present: transitionPresent },
+      transitionFlag: { status: transitionStatus, present: transitionPresent },
       mediaFlag: { status: mediaStatus, present: mediaPresent, consistent: mediaConsistent },
       overallStatus,
       issues,
@@ -213,7 +260,7 @@ export function buildComparisonReport(
       warnings: d.warnings,
     })),
     rows,
-    fuzzyThreshold,
+    settings,
     summary: {
       decksCompared: decks.length,
       totalAlignedSlides: maxSlideCount,

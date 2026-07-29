@@ -116,3 +116,24 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Print view: always render as a plain white/black report regardless of the active theme —
+   the espresso dark theme would otherwise print as a wall of near-black ink. */
+@media print {
+  :root {
+    --color-paper: #ffffff;
+    --color-paper-2: #ffffff;
+    --color-card: #ffffff;
+    --color-elevation: #ffffff;
+    --color-line: #cccccc;
+    --color-line-2: #999999;
+    --color-ink: #000000;
+    --color-ink-2: #222222;
+    --color-muted: #444444;
+    --color-faint: #666666;
+  }
+
+  body {
+    background: #fff !important;
+  }
+}

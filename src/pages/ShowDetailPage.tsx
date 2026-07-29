@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { IssueTrend } from "@/components/IssueTrend";
 
 export function ShowDetailPage() {
   const { showId } = useParams<{ showId: string }>();
@@ -50,43 +51,57 @@ export function ShowDetailPage() {
         />
       )}
 
+      {reports && reports.length >= 2 && <IssueTrend reports={reports} />}
+
       <div className="flex flex-col gap-3">
-        {reports?.map((report) => (
-          <Card
-            key={report.id}
-            className="flex cursor-pointer items-center justify-between px-5 py-4 hover:border-(--color-red)"
-            onClick={() => navigate(`/shows/${show.id}/reports/${report.id}`)}
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-(--color-module-report)" />
-                <h2 className="font-display font-bold text-(--color-ink)">
-                  {report.runLabel || new Date(report.createdAt).toLocaleString()}
-                </h2>
+        {reports?.map((report, i) => {
+          // reports is newest-first; the previous *run* (chronologically) is the next entry.
+          const previous = reports[i + 1];
+          const delta = previous ? report.summary.issueCount - previous.summary.issueCount : null;
+
+          return (
+            <Card
+              key={report.id}
+              className="flex cursor-pointer items-center justify-between px-5 py-4 hover:border-(--color-red)"
+              onClick={() => navigate(`/shows/${show.id}/reports/${report.id}`)}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-(--color-module-report)" />
+                  <h2 className="font-display font-bold text-(--color-ink)">
+                    {report.runLabel || new Date(report.createdAt).toLocaleString()}
+                  </h2>
+                </div>
+                <p className="mt-1 text-sm text-(--color-muted)">
+                  {report.deckLabels.join(", ")} · {report.summary.totalSlides} slides
+                  {delta !== null && (
+                    <span className={delta < 0 ? "text-(--color-ok)" : delta > 0 ? "text-(--color-timeout)" : "text-(--color-muted)"}>
+                      {" "}
+                      · {delta < 0 ? `▼ ${-delta} fewer` : delta > 0 ? `▲ ${delta} more` : "= same"} than previous run
+                    </span>
+                  )}
+                </p>
               </div>
-              <p className="mt-1 text-sm text-(--color-muted)">
-                {report.deckLabels.join(", ")} · {report.summary.totalSlides} slides
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              {report.summary.issueCount > 0 ? (
-                <Badge tone="danger">{report.summary.issueCount} issue{report.summary.issueCount === 1 ? "" : "s"}</Badge>
-              ) : (
-                <Badge tone="ok">Clean</Badge>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteReport(report.id);
-                }}
-                className="text-(--color-faint) hover:text-(--color-timeout)"
-                aria-label="Delete report"
-              >
-                Delete
-              </button>
-            </div>
-          </Card>
-        ))}
+              <div className="flex shrink-0 items-center gap-3">
+                {report.summary.issueCount > 0 ? (
+                  <Badge tone="danger">{report.summary.issueCount} issue{report.summary.issueCount === 1 ? "" : "s"}</Badge>
+                ) : (
+                  <Badge tone="ok">Clean</Badge>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteReport(report.id);
+                  }}
+                  className="text-(--color-faint) hover:text-(--color-timeout)"
+                  aria-label="Delete report"
+                >
+                  Delete
+                </button>
+              </div>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
