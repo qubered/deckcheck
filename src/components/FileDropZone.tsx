@@ -73,7 +73,7 @@ export function FileDropZone({
               <span className="min-w-0 flex-1 truncate text-sm text-(--color-ink)">{pf.file.name}</span>
               <input
                 type="text"
-                placeholder="Screen label (Wide, Twins, Pillars...)"
+                placeholder="Label (optional) — defaults to the filename"
                 value={pf.label}
                 onChange={(e) =>
                   onFilesChange(files.map((f) => (f.id === pf.id ? { ...f, label: e.target.value } : f)))

@@ -34,7 +34,7 @@
   /* Module wayfinding (DeckCheck entities) */
   --color-module-show: #5b8def; /* Shows */
   --color-module-report: #eba53a; /* Reports */
-  --color-module-deck: #9b82e6; /* Decks / screens (Wide, Twins, Pillars...) */
+  --color-module-deck: #9b82e6; /* Decks — each uploaded .pptx file being compared */
 
   /* Shape */
   --radius-md: 14px;
