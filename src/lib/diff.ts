@@ -77,6 +77,19 @@ function labelFor(deck: DeckFingerprint): string {
   return deck.userLabel?.trim() || deck.filename;
 }
 
+// A realigned deck's offset from the reference stays constant across long stretches of perfectly
+// matching content — only the row where the offset actually *changes* (an insertion/deletion was
+// just consumed) is worth a manual double-check. Flagging every row from the first divergence
+// onward, regardless of whether that row's own content still lines up, reads as "everything here
+// is suspect" even when each row is individually a perfect match.
+function isRealignmentBoundary(alignment: ReturnType<typeof alignDeckToReference>, refIndex: number): boolean {
+  const own = alignment.referenceToOwnIndex.get(refIndex) ?? null;
+  if (own === null) return false; // no counterpart at all here — already surfaced via the "no slide here" issue
+  const prevOwn = refIndex > 1 ? (alignment.referenceToOwnIndex.get(refIndex - 1) ?? null) : 0;
+  if (prevOwn === null) return true; // this row is the first one back after a gap
+  return own - prevOwn !== 1;
+}
+
 /**
  * Builds a per-slide diff report across 2+ parsed decks.
  *
@@ -168,11 +181,11 @@ export function buildComparisonReport(
       };
     } else {
       for (const [deckId, alignment] of alignments) {
-        if (alignment.misalignedFromSlide !== null && column.refIndex >= alignment.misalignedFromSlide) {
+        if (isRealignmentBoundary(alignment, column.refIndex)) {
           const deck = decks.find((d) => d.deckId === deckId)!;
           realignment = {
             deckId,
-            note: `${labelFor(deck)}'s slide count doesn't match the rest of the group, so from here on its slides are matched by text content instead of position — double-check this row lines up with the right slide.`,
+            note: `${labelFor(deck)}'s slide order shifts out of position here — this row is matched by text content instead of position, so double-check it lines up with the right slide.`,
           };
           break;
         }
