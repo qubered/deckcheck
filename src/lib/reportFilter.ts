@@ -1,9 +1,9 @@
 import type { SlideDiffRow } from "./types";
 
 /** Named row filters surfaced as clickable dashboard tiles / chips on the report view.
- * "issues" / "info" / "clean" split on overallStatus; "text" / "structural" / "build" / "flags"
- * drill into one specific check regardless of what else is going on in that row. */
-export type ReportFilter = "all" | "issues" | "info" | "clean" | "text" | "structural" | "build" | "flags";
+ * "issues" / "clean" split on overallStatus; "text" / "structural" / "build" / "flags" drill into
+ * one specific check regardless of what else is going on in that row. */
+export type ReportFilter = "all" | "issues" | "clean" | "text" | "structural" | "build" | "flags";
 
 export function rowMatchesFilter(row: SlideDiffRow, filter: ReportFilter): boolean {
   switch (filter) {
@@ -11,8 +11,6 @@ export function rowMatchesFilter(row: SlideDiffRow, filter: ReportFilter): boole
       return true;
     case "issues":
       return row.overallStatus === "mismatch" || row.overallStatus === "partial" || row.overallStatus === "structural";
-    case "info":
-      return row.overallStatus === "info";
     case "clean":
       return row.overallStatus === "match";
     case "text":
@@ -22,7 +20,7 @@ export function rowMatchesFilter(row: SlideDiffRow, filter: ReportFilter): boole
     case "build":
       return row.buildMatch.status === "mismatch";
     case "flags":
-      return row.transitionFlag.present || row.mediaFlag.present;
+      return row.transitionFlag.status === "mismatch" || row.mediaFlag.status === "mismatch";
   }
 }
 

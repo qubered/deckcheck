@@ -5,7 +5,6 @@ const tickColor: Record<MatchStatus, string> = {
   partial: "bg-(--color-warn)",
   structural: "bg-(--color-warn)",
   mismatch: "bg-(--color-timeout)",
-  info: "bg-(--color-module-show)",
 };
 
 /** Minimap over the currently visible rows — one tick per row, colored by status, click to jump.

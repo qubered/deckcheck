@@ -6,7 +6,6 @@ const config: Record<MatchStatus, { tone: BadgeTone; label: string }> = {
   partial: { tone: "warn", label: "Partial match" },
   structural: { tone: "warn", label: "No counterpart" },
   mismatch: { tone: "danger", label: "Mismatch" },
-  info: { tone: "info", label: "Flagged" },
 };
 
 export function StatusBadge({ status }: { status: MatchStatus }) {

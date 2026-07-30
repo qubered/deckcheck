@@ -53,7 +53,6 @@ export function ReportSummary({
 }) {
   const { rows } = report;
   const clean = rows.filter((r) => r.overallStatus === "match").length;
-  const info = rows.filter((r) => r.overallStatus === "info").length;
   const issues = rows.filter(
     (r) => r.overallStatus === "mismatch" || r.overallStatus === "partial" || r.overallStatus === "structural",
   ).length;
@@ -61,7 +60,9 @@ export function ReportSummary({
   const textIssues = rows.filter((r) => r.textMatch.status === "mismatch" || r.textMatch.status === "partial").length;
   const structural = rows.filter((r) => r.textMatch.status === "structural").length;
   const buildIssues = rows.filter((r) => r.buildMatch.status === "mismatch").length;
-  const flags = rows.filter((r) => r.transitionFlag.present || r.mediaFlag.present).length;
+  // Auto-advance/autoplay present on every deck alike is normal, not a warning — like the other
+  // "By check" chips, this counts only the cases where decks in the group actually disagree.
+  const flagMismatches = rows.filter((r) => r.transitionFlag.status === "mismatch" || r.mediaFlag.status === "mismatch").length;
 
   function toggle(filter: ReportFilter) {
     onFilterChange(activeFilter === filter ? "all" : filter);
@@ -69,10 +70,9 @@ export function ReportSummary({
 
   return (
     <Card className="mb-4 p-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatTile label="Decks compared" value={report.summary.decksCompared} />
         <StatTile label="Clean" value={clean} tone="ok" onClick={() => toggle("clean")} active={activeFilter === "clean"} />
-        <StatTile label="Flagged" value={info} tone="info" onClick={() => toggle("info")} active={activeFilter === "info"} />
         <StatTile
           label="Issues"
           value={issues}
@@ -87,7 +87,7 @@ export function ReportSummary({
         <FilterChip label="Text mismatches" count={textIssues} tone="danger" active={activeFilter === "text"} onClick={() => toggle("text")} />
         <FilterChip label="No counterpart" count={structural} tone="warn" active={activeFilter === "structural"} onClick={() => toggle("structural")} />
         <FilterChip label="Build mismatches" count={buildIssues} tone="danger" active={activeFilter === "build"} onClick={() => toggle("build")} />
-        <FilterChip label="Auto-advance / autoplay" count={flags} tone="warn" active={activeFilter === "flags"} onClick={() => toggle("flags")} />
+        <FilterChip label="Auto-advance / autoplay" count={flagMismatches} tone="danger" active={activeFilter === "flags"} onClick={() => toggle("flags")} />
       </div>
     </Card>
   );

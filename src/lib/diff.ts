@@ -102,7 +102,7 @@ export function buildComparisonReport(
   decks: DeckFingerprint[],
   settings: ReportSettings = DEFAULT_REPORT_SETTINGS,
 ): ComparisonReport {
-  const { fuzzyThreshold, autoAdvanceSeverity, autoplaySeverity } = settings;
+  const { fuzzyThreshold } = settings;
   const rows: SlideDiffRow[] = [];
   let issueCount = 0;
 
@@ -236,21 +236,17 @@ export function buildComparisonReport(
       }
     }
 
-    // Transition auto-advance: flagged whenever present on any deck, independent of consistency —
-    // auto-advance is inherently risky on synced content regardless of whether every deck agrees.
-    // Severity is configurable per-show (spec §12): "soft" keeps it informational, "hard" escalates
-    // bare presence to a mismatch.
+    // Transition auto-advance: only worth a flag when decks in the group disagree about it — a
+    // slide that auto-advances the same way on every deck is just how the show is built, not
+    // something to double-check. Same treatment as media autoplay below.
     const autoAdvanceCells = presentCells.filter((c) => c.hasAutoAdvance);
     const transitionPresent = autoAdvanceCells.length > 0;
-    const transitionStatus: MatchStatus = transitionPresent
-      ? autoAdvanceSeverity === "hard"
-        ? "mismatch"
-        : "info"
-      : "match";
-    if (transitionPresent) {
+    const transitionConsistent = !transitionPresent || autoAdvanceCells.length === presentCells.length;
+    const transitionStatus: MatchStatus = transitionPresent && !transitionConsistent ? "mismatch" : "match";
+    if (transitionPresent && !transitionConsistent) {
       for (const c of autoAdvanceCells) {
         const deck = decks.find((d) => d.deckId === c.deckId)!;
-        issues.push(`${labelFor(deck)}: auto-advances after ${c.autoAdvanceMs}ms`);
+        issues.push(`${labelFor(deck)}: auto-advances after ${c.autoAdvanceMs}ms (not present on the rest of the group)`);
       }
     }
 
@@ -273,20 +269,16 @@ export function buildComparisonReport(
       }
     }
 
-    // Media autoplay: flagged whenever present (inherently risky on synced content), always
-    // escalated to a mismatch if only some decks in the group have it (that's a real
-    // inconsistency, not a severity choice), and additionally escalated on bare presence when
-    // this show's autoplay severity is set to "hard".
+    // Media autoplay: only a flag when it's inconsistent across the group — some decks having
+    // autoplay media that others don't is a real difference worth catching. Autoplay present on
+    // every deck alike is just how the show is built, not something to surface as a warning.
     const autoplayCells = presentCells.filter((c) => c.hasAutoplayMedia);
     const mediaPresent = autoplayCells.length > 0;
     const mediaConsistent = !mediaPresent || autoplayCells.length === presentCells.length;
-    const mediaStatus: MatchStatus =
-      mediaPresent && (!mediaConsistent || autoplaySeverity === "hard") ? "mismatch" : mediaPresent ? "info" : "match";
-    if (mediaPresent) {
+    const mediaStatus: MatchStatus = mediaPresent && !mediaConsistent ? "mismatch" : "match";
+    if (mediaPresent && !mediaConsistent) {
       issues.push(
-        `Autoplay media on: ${autoplayCells.map((c) => labelFor(decks.find((d) => d.deckId === c.deckId)!)).join(", ")}${
-          mediaConsistent ? "" : " (not present on the rest of the group)"
-        }`,
+        `Autoplay media on: ${autoplayCells.map((c) => labelFor(decks.find((d) => d.deckId === c.deckId)!)).join(", ")} (not present on the rest of the group)`,
       );
     }
 
@@ -297,8 +289,6 @@ export function buildComparisonReport(
       overallStatus = "structural";
     } else if (textStatus === "partial") {
       overallStatus = "partial";
-    } else if (transitionStatus === "info" || mediaStatus === "info") {
-      overallStatus = "info";
     } else {
       overallStatus = "match";
     }
@@ -318,7 +308,7 @@ export function buildComparisonReport(
       cells,
       textMatch: { status: textStatus, minSimilarity },
       buildMatch: { status: buildStatus },
-      transitionFlag: { status: transitionStatus, present: transitionPresent },
+      transitionFlag: { status: transitionStatus, present: transitionPresent, consistent: transitionConsistent },
       mediaFlag: { status: mediaStatus, present: mediaPresent, consistent: mediaConsistent },
       overallStatus,
       issues,
