@@ -19,7 +19,6 @@ const rowBorderTone: Record<MatchStatus, string> = {
   partial: "border-l-(--color-warn)",
   structural: "border-l-(--color-warn)",
   mismatch: "border-l-(--color-timeout)",
-  info: "border-l-(--color-module-show)",
 };
 
 // Same bands `diff.ts` uses to decide match/partial/mismatch, applied directly to the raw
@@ -259,9 +258,19 @@ export function ReportViewPage() {
                             {buildSummaryLine(cell.builds, cell.buildClickCount)}
                           </p>
                           {cell.hasAutoAdvance && (
-                            <p className="mt-1 text-xs text-(--color-warn)">⚠ auto-advance {cell.autoAdvanceMs}ms</p>
+                            <p
+                              className={`mt-1 text-xs ${row.transitionFlag.status === "mismatch" ? "text-(--color-warn)" : "text-(--color-faint)"}`}
+                            >
+                              {row.transitionFlag.status === "mismatch" ? "⚠ " : ""}auto-advance {cell.autoAdvanceMs}ms
+                            </p>
                           )}
-                          {cell.hasAutoplayMedia && <p className="mt-1 text-xs text-(--color-warn)">⚠ autoplay media</p>}
+                          {cell.hasAutoplayMedia && (
+                            <p
+                              className={`mt-1 text-xs ${row.mediaFlag.status === "mismatch" ? "text-(--color-warn)" : "text-(--color-faint)"}`}
+                            >
+                              {row.mediaFlag.status === "mismatch" ? "⚠ " : ""}autoplay media
+                            </p>
+                          )}
                         </div>
                       )}
                     </td>

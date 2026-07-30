@@ -72,7 +72,7 @@ export interface DeckFingerprint {
 // "structural" covers slide-count differences (a slide missing on one side, or an extra slide
 // with no counterpart at all) — kept distinct from "mismatch" so a deck simply running long/short
 // doesn't read as alarmingly as genuinely divergent content on a shared slide.
-export type MatchStatus = "match" | "partial" | "structural" | "mismatch" | "info";
+export type MatchStatus = "match" | "partial" | "structural" | "mismatch";
 
 export interface SlideCellResult {
   deckId: string;
@@ -94,29 +94,19 @@ export interface SlideDiffRow {
   cells: SlideCellResult[];
   textMatch: { status: MatchStatus; minSimilarity: number };
   buildMatch: { status: MatchStatus };
-  transitionFlag: { status: MatchStatus; present: boolean };
+  transitionFlag: { status: MatchStatus; present: boolean; consistent: boolean };
   mediaFlag: { status: MatchStatus; present: boolean; consistent: boolean };
   overallStatus: MatchStatus;
   issues: string[]; // human-readable flags, e.g. "deck2.pptx: build mismatch (4 vs 3 clicks)"
   realignment?: { deckId: string; note: string };
 }
 
-// "soft" (default): presence alone is an informational ⚠️ flag; only inconsistency across the
-// group escalates to a ❌ mismatch. "hard": presence alone is always a ❌ mismatch, since
-// auto-advancing/autoplaying content is inherently risky on synced show content regardless of
-// whether every deck agrees (spec §12 open decision — configurable per-show).
-export type FlagSeverity = "soft" | "hard";
-
 export interface ReportSettings {
   fuzzyThreshold: number;
-  autoAdvanceSeverity: FlagSeverity;
-  autoplaySeverity: FlagSeverity;
 }
 
 export const DEFAULT_REPORT_SETTINGS: ReportSettings = {
   fuzzyThreshold: 0.85,
-  autoAdvanceSeverity: "soft",
-  autoplaySeverity: "soft",
 };
 
 export interface ComparisonReport {

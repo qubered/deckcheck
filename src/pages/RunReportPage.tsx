@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { db, touchShow } from "@/lib/db";
 import { getSessionSettings, setSessionSettings } from "@/lib/sessionSettings";
-import type { FlagSeverity, Report, ReportSettings, WorkerResponse } from "@/lib/types";
+import type { Report, ReportSettings, WorkerResponse } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -10,9 +10,6 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileDropZone, type PendingFile } from "@/components/FileDropZone";
 
 type DeckProgress = { filename: string; slidesParsed: number; totalSlides: number; done: boolean };
-
-const selectClass =
-  "w-full rounded-(--radius-md) border-2 border-(--color-line) bg-(--color-paper-2) px-3 py-2 text-sm text-(--color-ink) outline-none focus:border-(--color-red)";
 
 export function RunReportPage() {
   const { showId } = useParams<{ showId: string }>();
@@ -154,28 +151,10 @@ export function RunReportPage() {
                     How similar slide text must be across decks to count as a match, below which it's flagged.
                   </p>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-(--color-ink-2)">Auto-advance transitions</label>
-                  <select
-                    className={selectClass}
-                    value={settings.autoAdvanceSeverity}
-                    onChange={(e) => updateSettings({ autoAdvanceSeverity: e.target.value as FlagSeverity })}
-                  >
-                    <option value="soft">Soft warning — flag but don't fail the slide</option>
-                    <option value="hard">Hard mismatch — always fail a slide that auto-advances</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-(--color-ink-2)">Autoplay media</label>
-                  <select
-                    className={selectClass}
-                    value={settings.autoplaySeverity}
-                    onChange={(e) => updateSettings({ autoplaySeverity: e.target.value as FlagSeverity })}
-                  >
-                    <option value="soft">Soft warning — flag but don't fail the slide</option>
-                    <option value="hard">Hard mismatch — always fail a slide with autoplay media</option>
-                  </select>
-                </div>
+                <p className="text-xs text-(--color-muted)">
+                  Auto-advance transitions and autoplay media are only flagged when decks in the group disagree about
+                  them — the same setting on every deck isn't worth a warning.
+                </p>
               </Card>
             )}
           </div>
