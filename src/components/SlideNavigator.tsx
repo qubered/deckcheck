@@ -26,7 +26,11 @@ export function SlideNavigator({ rows, onJump }: { rows: SlideDiffRow[]; onJump:
           key={row.slideIndex}
           type="button"
           onClick={() => onJump(row.slideIndex)}
-          title={`${row.label} — ${row.overallStatus}`}
+          title={
+            row.cells.filter((c) => c.slideIndex !== null).length < 2
+              ? `${row.label} — ${row.overallStatus}`
+              : `${row.label} — ${row.overallStatus} — ${Math.round(row.textMatch.minSimilarity * 100)}% match`
+          }
           aria-label={`Jump to ${row.label}`}
           className={`h-full flex-1 transition-transform hover:scale-y-150 ${tickColor[row.overallStatus]}`}
         />

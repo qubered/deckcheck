@@ -13,10 +13,12 @@ function deckLabel(deck: ComparisonReport["decks"][number]): string {
 }
 
 export function reportToCsv(report: ComparisonReport): string {
-  const header = ["Slide", ...report.decks.map((d) => deckLabel(d)), "Status", "Issues"];
+  const header = ["Slide", "Match %", ...report.decks.map((d) => deckLabel(d)), "Status", "Issues"];
   const lines = [header.map(escapeCsvCell).join(",")];
 
   for (const row of report.rows) {
+    const presentCount = row.cells.filter((c) => c.slideIndex !== null).length;
+    const matchPct = presentCount < 2 ? "n/a" : `${Math.round(row.textMatch.minSimilarity * 100)}%`;
     const cells = row.cells.map((c) => {
       if (c.slideIndex === null) return "(no slide)";
       const parts = [c.textContent.slice(0, 60) || "(no text)", buildSummaryLine(c.builds, c.buildClickCount)];
@@ -26,6 +28,7 @@ export function reportToCsv(report: ComparisonReport): string {
     });
     const line = [
       row.label,
+      matchPct,
       ...cells,
       row.overallStatus,
       row.issues.join("; "),
