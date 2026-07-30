@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { StatTile } from "@/components/ui/StatTile";
 import { IssueTrend } from "@/components/IssueTrend";
 
 export function ShowDetailPage() {
@@ -49,6 +50,24 @@ export function ShowDetailPage() {
           description="Run a comparison across this show's decks to generate the first report."
           action={<Button onClick={() => navigate(`/app/shows/${show.id}/run`)}>+ Run new report</Button>}
         />
+      )}
+
+      {reports && reports.length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatTile label="Reports run" value={reports.length} />
+          <StatTile
+            label="Latest run"
+            value={reports[0].summary.issueCount}
+            tone={reports[0].summary.issueCount > 0 ? "danger" : "ok"}
+            sublabel={reports[0].summary.issueCount > 0 ? "issues flagged" : "clean"}
+          />
+          <StatTile label="Decks in latest run" value={reports[0].deckLabels.length} />
+          <StatTile
+            label="Slides compared"
+            value={reports[0].summary.totalSlides}
+            sublabel={new Date(reports[0].createdAt).toLocaleDateString()}
+          />
+        </div>
       )}
 
       {reports && reports.length >= 2 && <IssueTrend reports={reports} />}

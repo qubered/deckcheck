@@ -1,19 +1,66 @@
+import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useParams } from "react-router-dom";
 import { db } from "@/lib/db";
 import { reportToCsv, downloadCsv } from "@/lib/csv";
 import { summarizeBuildEffects } from "@/lib/effectLabels";
+import { rowMatchesFilter, rowMatchesSearch, type ReportFilter } from "@/lib/reportFilter";
+import type { MatchStatus } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ReportSummary } from "@/components/ReportSummary";
+import { SlideNavigator } from "@/components/SlideNavigator";
+
+const rowBorderTone: Record<MatchStatus, string> = {
+  match: "border-l-transparent",
+  partial: "border-l-(--color-warn)",
+  structural: "border-l-(--color-warn)",
+  mismatch: "border-l-(--color-timeout)",
+  info: "border-l-(--color-module-show)",
+};
 
 export function ReportViewPage() {
   const { showId, reportId } = useParams<{ showId: string; reportId: string }>();
   const report = useLiveQuery(() => db.reports.get(reportId!), [reportId]);
 
+  const [activeFilter, setActiveFilter] = useState<ReportFilter>("all");
+  const [search, setSearch] = useState("");
+  const [issueCursor, setIssueCursor] = useState(0);
+  const [scrollTarget, setScrollTarget] = useState<number | null>(null);
+
+  const fullReport = report?.fullReport;
+
+  const issueRows = useMemo(
+    () => (fullReport ? fullReport.rows.filter((r) => rowMatchesFilter(r, "issues")) : []),
+    [fullReport],
+  );
+
+  const visibleRows = useMemo(
+    () =>
+      fullReport
+        ? fullReport.rows.filter((r) => rowMatchesFilter(r, activeFilter) && rowMatchesSearch(r, search))
+        : [],
+    [fullReport, activeFilter, search],
+  );
+
+  useEffect(() => {
+    if (scrollTarget === null) return;
+    const el = document.getElementById(`row-${scrollTarget}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (el) {
+      el.classList.add("ring-2", "ring-(--color-red)");
+      const t = setTimeout(() => el.classList.remove("ring-2", "ring-(--color-red)"), 1200);
+      setScrollTarget(null);
+      return () => clearTimeout(t);
+    }
+    setScrollTarget(null);
+  }, [scrollTarget, activeFilter, search]);
+
   if (report === undefined) return null;
-  if (report === null) {
+  if (report === null || !fullReport) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-12">
         <p className="text-(--color-muted)">Report not found.</p>
@@ -21,13 +68,22 @@ export function ReportViewPage() {
     );
   }
 
-  const { fullReport } = report;
-
   function handleExport() {
-    const csv = reportToCsv(report!.fullReport);
+    const csv = reportToCsv(fullReport!);
     const safeName = (report!.runLabel || "report").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     downloadCsv(`deckcheck-${safeName}.csv`, csv);
   }
+
+  function jumpToIssue(direction: 1 | -1) {
+    if (issueRows.length === 0) return;
+    const next = (issueCursor + direction + issueRows.length) % issueRows.length;
+    setIssueCursor(next);
+    setActiveFilter("issues");
+    setSearch("");
+    setScrollTarget(issueRows[next].slideIndex);
+  }
+
+  const hasActiveFilter = activeFilter !== "all" || search.trim() !== "";
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12 print:max-w-full print:p-0">
@@ -59,11 +115,6 @@ export function ReportViewPage() {
       </header>
 
       <div className="mb-6 flex flex-wrap gap-3">
-        {fullReport.summary.issueCount > 0 ? (
-          <Badge tone="danger">{fullReport.summary.issueCount} issue{fullReport.summary.issueCount === 1 ? "" : "s"} flagged</Badge>
-        ) : (
-          <Badge tone="ok">No issues found</Badge>
-        )}
         {fullReport.decks.map((d) => (
           <Badge key={d.deckId} tone="neutral">
             {d.userLabel?.trim() || d.filename} · {d.slideCount} slides
@@ -91,70 +142,132 @@ export function ReportViewPage() {
         </Card>
       )}
 
-      <Card className="overflow-x-auto print:overflow-visible print:border-none print:shadow-none">
-        <table className="w-full min-w-max border-collapse text-sm print:min-w-0 print:text-xs">
-          <thead>
-            <tr className="border-b-2 border-(--color-line) bg-(--color-paper-2) text-left">
-              <th className="px-4 py-3 font-display text-(--color-ink)">Slide</th>
-              {fullReport.decks.map((d) => (
-                <th key={d.deckId} className="px-4 py-3 font-display text-(--color-ink)">
-                  {d.userLabel?.trim() || d.filename}
-                </th>
-              ))}
-              <th className="px-4 py-3 font-display text-(--color-ink)">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fullReport.rows.map((row) => (
-              <tr
-                key={row.slideIndex}
-                className={`border-b border-(--color-line) break-inside-avoid ${row.realignment ? "border-l-4 border-l-(--color-warn) bg-(--color-warn)/5" : ""}`}
-              >
-                <td className="px-4 py-3 align-top font-mono text-(--color-ink-2)">{row.label}</td>
-                {row.cells.map((cell) => (
-                  <td key={cell.deckId} className="max-w-64 px-4 py-3 align-top print:max-w-none">
-                    {cell.slideIndex === null ? (
-                      <span className="text-(--color-faint)">— no slide —</span>
-                    ) : (
-                      <div>
-                        <p className="truncate text-(--color-ink) print:whitespace-normal" title={cell.textContent}>
-                          {cell.textContent || <span className="text-(--color-faint)">(no text)</span>}
-                        </p>
-                        {cell.builds.length > 0 ? (
-                          <p className="mt-1 text-xs text-(--color-ink-2)">
-                            ▸ {cell.buildClickCount} build{cell.buildClickCount === 1 ? "" : "s"} — {summarizeBuildEffects(cell.builds)}
-                          </p>
-                        ) : (
-                          <p className="mt-1 text-xs text-(--color-faint)">No builds</p>
-                        )}
-                        {cell.hasAutoAdvance && (
-                          <p className="mt-1 text-xs text-(--color-warn)">⚠ auto-advance {cell.autoAdvanceMs}ms</p>
-                        )}
-                        {cell.hasAutoplayMedia && <p className="mt-1 text-xs text-(--color-warn)">⚠ autoplay media</p>}
-                      </div>
-                    )}
-                  </td>
+      <div className="print:hidden">
+        <ReportSummary report={fullReport} activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3 print:hidden">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search slide text or issues…"
+          className="max-w-xs py-2 text-sm"
+        />
+        <div className="flex items-center gap-1.5 text-sm">
+          <Button variant="outline" className="px-3 py-1.5" onClick={() => jumpToIssue(-1)} disabled={issueRows.length === 0}>
+            ↑ Prev issue
+          </Button>
+          <Button variant="outline" className="px-3 py-1.5" onClick={() => jumpToIssue(1)} disabled={issueRows.length === 0}>
+            ↓ Next issue
+          </Button>
+          {issueRows.length > 0 && (
+            <span className="text-(--color-muted)">
+              {issueCursor + 1} / {issueRows.length} issues
+            </span>
+          )}
+        </div>
+        {hasActiveFilter && (
+          <button
+            type="button"
+            onClick={() => {
+              setActiveFilter("all");
+              setSearch("");
+            }}
+            className="text-sm font-semibold text-(--color-muted) hover:text-(--color-red)"
+          >
+            ✕ Clear filter
+          </button>
+        )}
+        <span className="ml-auto text-sm text-(--color-faint)">
+          Showing {visibleRows.length} of {fullReport.rows.length} slides
+        </span>
+      </div>
+
+      <div className="print:hidden">
+        <SlideNavigator rows={visibleRows} onJump={setScrollTarget} />
+      </div>
+
+      {visibleRows.length === 0 ? (
+        <Card className="p-8 text-center text-sm text-(--color-muted)">
+          No slides match this filter.{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveFilter("all");
+              setSearch("");
+            }}
+            className="font-semibold text-(--color-red)"
+          >
+            Clear filter
+          </button>
+        </Card>
+      ) : (
+        <Card className="overflow-x-auto print:overflow-visible print:border-none print:shadow-none">
+          <table className="w-full min-w-max border-collapse text-sm print:min-w-0 print:text-xs">
+            <thead>
+              <tr className="sticky top-0 z-10 border-b-2 border-(--color-line) bg-(--color-paper-2) text-left print:static">
+                <th className="px-4 py-3 font-display text-(--color-ink)">Slide</th>
+                {fullReport.decks.map((d) => (
+                  <th key={d.deckId} className="px-4 py-3 font-display text-(--color-ink)">
+                    {d.userLabel?.trim() || d.filename}
+                  </th>
                 ))}
-                <td className="px-4 py-3 align-top">
-                  <div className="flex flex-col gap-1">
-                    <StatusBadge status={row.overallStatus} />
-                    {row.realignment && (
-                      <p className="text-xs font-semibold text-(--color-warn)">⚠ {row.realignment.note}</p>
-                    )}
-                    {row.issues.length > 0 && (
-                      <ul className="text-xs text-(--color-muted)">
-                        {row.issues.map((issue, i) => (
-                          <li key={i}>{issue}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </td>
+                <th className="px-4 py-3 font-display text-(--color-ink)">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+            </thead>
+            <tbody>
+              {visibleRows.map((row) => (
+                <tr
+                  id={`row-${row.slideIndex}`}
+                  key={row.slideIndex}
+                  className={`scroll-mt-16 border-b border-(--color-line) break-inside-avoid border-l-4 transition-shadow ${rowBorderTone[row.overallStatus]} ${row.realignment ? "bg-(--color-warn)/5" : ""}`}
+                >
+                  <td className="px-4 py-3 align-top font-mono text-(--color-ink-2)">{row.label}</td>
+                  {row.cells.map((cell) => (
+                    <td key={cell.deckId} className="max-w-64 px-4 py-3 align-top print:max-w-none">
+                      {cell.slideIndex === null ? (
+                        <span className="text-(--color-faint)">— no slide —</span>
+                      ) : (
+                        <div>
+                          <p className="truncate text-(--color-ink) print:whitespace-normal" title={cell.textContent}>
+                            {cell.textContent || <span className="text-(--color-faint)">(no text)</span>}
+                          </p>
+                          {cell.builds.length > 0 ? (
+                            <p className="mt-1 text-xs text-(--color-ink-2)">
+                              ▸ {cell.buildClickCount} build{cell.buildClickCount === 1 ? "" : "s"} — {summarizeBuildEffects(cell.builds)}
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-(--color-faint)">No builds</p>
+                          )}
+                          {cell.hasAutoAdvance && (
+                            <p className="mt-1 text-xs text-(--color-warn)">⚠ auto-advance {cell.autoAdvanceMs}ms</p>
+                          )}
+                          {cell.hasAutoplayMedia && <p className="mt-1 text-xs text-(--color-warn)">⚠ autoplay media</p>}
+                        </div>
+                      )}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex flex-col gap-1">
+                      <StatusBadge status={row.overallStatus} />
+                      {row.realignment && (
+                        <p className="text-xs font-semibold text-(--color-warn)">⚠ {row.realignment.note}</p>
+                      )}
+                      {row.issues.length > 0 && (
+                        <ul className="text-xs text-(--color-muted)">
+                          {row.issues.map((issue, i) => (
+                            <li key={i}>{issue}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
     </div>
   );
 }
