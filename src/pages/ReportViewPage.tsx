@@ -22,6 +22,15 @@ const rowBorderTone: Record<MatchStatus, string> = {
   info: "border-l-(--color-module-show)",
 };
 
+// Same bands `diff.ts` uses to decide match/partial/mismatch, applied directly to the raw
+// similarity number so the color always matches what the percentage says, row by row, letting
+// you scan straight down the column for where it drops instead of reading each status badge.
+function similarityTone(sim: number, threshold: number): string {
+  if (sim >= threshold) return "text-(--color-ok)";
+  if (sim >= threshold - 0.15) return "text-(--color-warn)";
+  return "text-(--color-timeout)";
+}
+
 export function ReportViewPage() {
   const { showId, reportId } = useParams<{ showId: string; reportId: string }>();
   const report = useLiveQuery(() => db.reports.get(reportId!), [reportId]);
@@ -207,6 +216,7 @@ export function ReportViewPage() {
             <thead>
               <tr className="sticky top-0 z-10 border-b-2 border-(--color-line) bg-(--color-paper-2) text-left print:static">
                 <th className="px-4 py-3 font-display text-(--color-ink)">Slide</th>
+                <th className="px-4 py-3 font-display text-(--color-ink)">Match</th>
                 {fullReport.decks.map((d) => (
                   <th key={d.deckId} className="px-4 py-3 font-display text-(--color-ink)">
                     {d.userLabel?.trim() || d.filename}
@@ -223,6 +233,18 @@ export function ReportViewPage() {
                   className={`scroll-mt-16 border-b border-(--color-line) break-inside-avoid border-l-4 transition-shadow ${rowBorderTone[row.overallStatus]} ${row.realignment ? "bg-(--color-warn)/5" : ""}`}
                 >
                   <td className="px-4 py-3 align-top font-mono text-(--color-ink-2)">{row.label}</td>
+                  <td className="px-4 py-3 align-top">
+                    {row.cells.filter((c) => c.slideIndex !== null).length < 2 ? (
+                      <span className="text-(--color-faint)">—</span>
+                    ) : (
+                      <span
+                        className={`font-mono text-base font-bold tabular-nums ${similarityTone(row.textMatch.minSimilarity, fullReport.settings.fuzzyThreshold)}`}
+                        title={`${Math.round(row.textMatch.minSimilarity * 100)}% text similarity across decks (threshold: ${Math.round(fullReport.settings.fuzzyThreshold * 100)}%)`}
+                      >
+                        {Math.round(row.textMatch.minSimilarity * 100)}%
+                      </span>
+                    )}
+                  </td>
                   {row.cells.map((cell) => (
                     <td key={cell.deckId} className="max-w-64 px-4 py-3 align-top print:max-w-none">
                       {cell.slideIndex === null ? (
