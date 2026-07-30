@@ -1,6 +1,6 @@
 import { distance } from "fastest-levenshtein";
 import { alignDeckToReference } from "./alignment";
-import { effectFamilyLabel } from "./effectLabels";
+import { buildSummaryLine, effectFamilyLabel } from "./effectLabels";
 import { DEFAULT_REPORT_SETTINGS } from "./types";
 import type {
   ComparisonReport,
@@ -251,20 +251,26 @@ export function buildComparisonReport(
     }
 
     // Build/click count: primary comparable unit for animation-heavy decks — every deck in the
-    // group should agree on how many clicks a slide takes to fully play out.
+    // group should agree on how many clicks a slide takes to fully play out, *and* on the total
+    // number of build steps. A step that plays automatically (no click) still needs a counterpart
+    // on every other deck — otherwise that deck is out of sync even though click parity holds
+    // (e.g. one deck has an auto-playing build and another has none: both need 0 clicks, but
+    // they don't actually play the same show).
     let buildStatus: MatchStatus = "match";
     if (presentCells.length >= 2) {
-      const distinctCounts = new Set(presentCells.map((c) => c.buildClickCount));
-      if (distinctCounts.size > 1) {
+      const distinctClickCounts = new Set(presentCells.map((c) => c.buildClickCount));
+      const distinctBuildCounts = new Set(presentCells.map((c) => c.builds.length));
+      if (distinctClickCounts.size > 1 || distinctBuildCounts.size > 1) {
         buildStatus = "mismatch";
         issues.push(
           `Build/click count mismatch — ${presentCells
-            .map((c) => `${labelFor(decks.find((d) => d.deckId === c.deckId)!)}: ${c.buildClickCount} click${c.buildClickCount === 1 ? "" : "s"}`)
+            .map((c) => `${labelFor(decks.find((d) => d.deckId === c.deckId)!)}: ${buildSummaryLine(c.builds, c.buildClickCount)}`)
             .join(", ")}`,
         );
       } else {
-        // Click counts agree, so step indices line up meaningfully across decks — worth checking
-        // whether the same step plays a different effect (fade vs. wipe, etc.) on each deck.
+        // Click counts (and total build counts) agree, so step indices line up meaningfully
+        // across decks — worth checking whether the same step plays a different effect (fade vs.
+        // wipe, etc.) on each deck.
         issues.push(...compareEffects(presentCells, decks));
       }
     }
