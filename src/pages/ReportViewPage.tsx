@@ -21,13 +21,14 @@ const rowBorderTone: Record<MatchStatus, string> = {
   mismatch: "border-l-(--color-timeout)",
 };
 
-// Same bands `diff.ts` uses to decide match/partial/mismatch, applied directly to the raw
-// similarity number so the color always matches what the percentage says, row by row, letting
-// you scan straight down the column for where it drops instead of reading each status badge.
-function similarityTone(sim: number, threshold: number): string {
-  if (sim >= threshold) return "text-(--color-ok)";
-  if (sim >= threshold - 0.15) return "text-(--color-warn)";
-  return "text-(--color-timeout)";
+// Colored by the row's overall status, not just text similarity — a slide can be 100% text-match
+// and still be mismatched (different build/click count, autoplay media, auto-advance), and a big
+// green number in the most eye-catching column on the row would bury that. Tying the color to
+// `overallStatus` means the number can only ever look "all good" when the row actually is.
+function matchCellTone(status: MatchStatus): string {
+  if (status === "mismatch") return "text-(--color-timeout)";
+  if (status === "partial" || status === "structural") return "text-(--color-warn)";
+  return "text-(--color-ok)";
 }
 
 export function ReportViewPage() {
@@ -237,8 +238,8 @@ export function ReportViewPage() {
                       <span className="text-(--color-faint)">—</span>
                     ) : (
                       <span
-                        className={`font-mono text-base font-bold tabular-nums ${similarityTone(row.textMatch.minSimilarity, fullReport.settings.fuzzyThreshold)}`}
-                        title={`${Math.round(row.textMatch.minSimilarity * 100)}% text similarity across decks (threshold: ${Math.round(fullReport.settings.fuzzyThreshold * 100)}%)`}
+                        className={`font-mono text-base font-bold tabular-nums ${matchCellTone(row.overallStatus)}`}
+                        title={`${Math.round(row.textMatch.minSimilarity * 100)}% text similarity across decks (threshold: ${Math.round(fullReport.settings.fuzzyThreshold * 100)}%)${row.overallStatus !== "match" ? " — row has other issues, see Status column" : ""}`}
                       >
                         {Math.round(row.textMatch.minSimilarity * 100)}%
                       </span>
