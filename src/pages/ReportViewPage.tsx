@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useParams } from "react-router-dom";
 import { db } from "@/lib/db";
 import { reportToCsv, downloadCsv } from "@/lib/csv";
-import { summarizeBuildEffects } from "@/lib/effectLabels";
+import { buildSummaryLine } from "@/lib/effectLabels";
 import { rowMatchesFilter, rowMatchesSearch, type ReportFilter } from "@/lib/reportFilter";
 import type { MatchStatus } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
@@ -232,13 +232,10 @@ export function ReportViewPage() {
                           <p className="truncate text-(--color-ink) print:whitespace-normal" title={cell.textContent}>
                             {cell.textContent || <span className="text-(--color-faint)">(no text)</span>}
                           </p>
-                          {cell.builds.length > 0 ? (
-                            <p className="mt-1 text-xs text-(--color-ink-2)">
-                              ▸ {cell.buildClickCount} build{cell.buildClickCount === 1 ? "" : "s"} — {summarizeBuildEffects(cell.builds)}
-                            </p>
-                          ) : (
-                            <p className="mt-1 text-xs text-(--color-faint)">No builds</p>
-                          )}
+                          <p className={`mt-1 text-xs ${cell.builds.length > 0 ? "text-(--color-ink-2)" : "text-(--color-faint)"}`}>
+                            {cell.builds.length > 0 ? "▸ " : ""}
+                            {buildSummaryLine(cell.builds, cell.buildClickCount)}
+                          </p>
                           {cell.hasAutoAdvance && (
                             <p className="mt-1 text-xs text-(--color-warn)">⚠ auto-advance {cell.autoAdvanceMs}ms</p>
                           )}

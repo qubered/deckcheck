@@ -170,7 +170,10 @@ export function buildComparisonReport(
       for (const [deckId, alignment] of alignments) {
         if (alignment.misalignedFromSlide !== null && column.refIndex >= alignment.misalignedFromSlide) {
           const deck = decks.find((d) => d.deckId === deckId)!;
-          realignment = { deckId, note: `${labelFor(deck)} realigned from here — verify this row manually.` };
+          realignment = {
+            deckId,
+            note: `${labelFor(deck)}'s slide count doesn't match the rest of the group, so from here on its slides are matched by text content instead of position — double-check this row lines up with the right slide.`,
+          };
           break;
         }
       }
