@@ -32,3 +32,17 @@ export function summarizeBuildEffects(builds: BuildStep[]): string {
     .map(([label, count]) => (count > 1 ? `${label} ×${count}` : label))
     .join(", ");
 }
+
+/** Full build-step line for a slide, e.g. "2 builds — Entrance ×2" or "1 build, plays
+ * automatically — Entrance". `buildClickCount` only counts steps that need a click to advance
+ * (see `pptx-parser.ts`) — a slide can have builds that all fire automatically alongside the
+ * previous step/slide, which would otherwise misleadingly read as "0 builds" despite having one. */
+export function buildSummaryLine(builds: BuildStep[], buildClickCount: number): string {
+  if (builds.length === 0) return "No builds";
+  const effects = summarizeBuildEffects(builds);
+  const s = builds.length === 1 ? "" : "s";
+  if (buildClickCount === builds.length) return `${builds.length} build${s} — ${effects}`;
+  if (buildClickCount === 0) return `${builds.length} build${s}, plays automatically — ${effects}`;
+  const autoCount = builds.length - buildClickCount;
+  return `${buildClickCount} click${buildClickCount === 1 ? "" : "s"} + ${autoCount} auto — ${effects}`;
+}
